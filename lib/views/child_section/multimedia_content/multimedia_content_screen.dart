@@ -1,0 +1,90 @@
+import 'package:eco_venture_admin_portal/core/constants/app_colors.dart';
+import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/story_screen.dart';
+import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/video_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:responsive_sizer/responsive_sizer.dart';
+
+class MultimediaContentScreen extends StatefulWidget {
+  const MultimediaContentScreen({super.key});
+
+  @override
+  State<MultimediaContentScreen> createState() => _MultimediaContentScreenState();
+}
+
+class _MultimediaContentScreenState extends State<MultimediaContentScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    _tabController = TabController(length: 2, vsync: this);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          "Multimedia Content",
+          style: GoogleFonts.poppins(fontSize: 18.sp, color: Colors.white),
+        ),
+        centerTitle: true,
+        leading: GestureDetector(
+          onTap: () {
+
+          },
+          child: Padding(
+            padding: EdgeInsetsGeometry.only(left: 1.w),
+            child: SizedBox(
+              height: 50,
+              width: 50,
+              child: Icon(Icons.arrow_back_ios),
+            ),
+          ),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          splashFactory: InkRipple.splashFactory, // ripple effect style
+          overlayColor: WidgetStateProperty.all(
+            Colors.red.withValues(alpha: 0.1),
+          ), // pressed overlay
+          indicatorColor: Colors.deepOrange,
+          labelStyle: GoogleFonts.poppins(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.bold,
+          ),
+          unselectedLabelStyle: GoogleFonts.poppins(
+            fontSize: 14.sp,
+            color: Colors.grey,
+          ),
+          labelColor: Colors.deepOrange, // Active tab text + icon color
+          unselectedLabelColor:Colors.white, // Inactive tab text + icon color
+          tabs: [
+            Tab(
+              icon: Icon(Icons.movie, size: 6.w),
+              text: "Video",
+            ),
+            Tab(icon: Icon(Icons.menu_book), text: "Story"),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [VideoScreen(), StoryScreen()],
+      ),
+    );
+  }
+}
