@@ -1,18 +1,18 @@
-
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:eco_venture_admin_portal/services/shared_preferences_helper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../repositories/auth_repo.dart';
 import 'auth_state.dart';
+
 class AuthViewModel extends StateNotifier<AuthState> {
   final AuthRepo _repo;
 
   AuthViewModel(this._repo) : super(AuthState.initial());
 
   Future<void> signInUser(
-      String email,
-      String password, {
-        Function? onSuccess,
-      }) async {
+    String email,
+    String password, {
+    Function? onSuccess,
+  }) async {
     state = state.copyWith(isEmailLoading: true, emailError: null);
 
     try {
@@ -24,24 +24,18 @@ class AuthViewModel extends StateNotifier<AuthState> {
       }
 
       //  Only update state and call onSuccess when login succeeds
-      state = state.copyWith(
-        isEmailLoading: false,
-        admin: user,
-      );
+      state = state.copyWith(isEmailLoading: false, admin: user);
 
+      await SharedPreferencesHelper.instance.saveAdminId(user.uid);
+      await SharedPreferencesHelper.instance.saveAdminName(user.name);
+      await SharedPreferencesHelper.instance.saveAdminEmail(user.email);
       if (onSuccess != null) onSuccess();
     } catch (e) {
-      state = state.copyWith(
-        isEmailLoading: false,
-        emailError: e.toString(),
-      );
+      state = state.copyWith(isEmailLoading: false, emailError: e.toString());
     }
   }
 
-  Future<void> forgotPassword(
-      String email, {
-        Function? onSuccess,
-      }) async {
+  Future<void> forgotPassword(String email, {Function? onSuccess}) async {
     state = state.copyWith(isEmailLoading: true, emailError: null);
     try {
       await _repo.forgotPassword(email);
@@ -49,10 +43,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
 
       if (onSuccess != null) onSuccess();
     } catch (e) {
-      state = state.copyWith(
-        isEmailLoading: false,
-        emailError: e.toString(),
-      );
+      state = state.copyWith(isEmailLoading: false, emailError: e.toString());
     }
   }
 }

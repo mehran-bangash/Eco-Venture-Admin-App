@@ -1,7 +1,8 @@
-import 'package:eco_venture_admin_portal/core/constants/app_colors.dart';
+
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/story_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/video_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
@@ -34,7 +35,7 @@ class _MultimediaContentScreenState extends State<MultimediaContentScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor: Color(0xFF2F5755),
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
@@ -44,7 +45,7 @@ class _MultimediaContentScreenState extends State<MultimediaContentScreen>
         centerTitle: true,
         leading: GestureDetector(
           onTap: () {
-
+              context.goNamed('bottomNavChild');
           },
           child: Padding(
             padding: EdgeInsetsGeometry.only(left: 1.w),

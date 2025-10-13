@@ -6,12 +6,7 @@ class EditStoryScreen extends StatefulWidget {
   final String? thumbnail;
   final int? pages;
 
-  const EditStoryScreen({
-    super.key,
-     this.title,
-     this.thumbnail,
-     this.pages,
-  });
+  const EditStoryScreen({super.key, this.title, this.thumbnail, this.pages});
 
   @override
   State<EditStoryScreen> createState() => _EditStoryScreenState();
@@ -52,6 +47,13 @@ class _EditStoryScreenState extends State<EditStoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+        leading: GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+          },
+            child: Icon(Icons.arrow_back)),
         title: const Text("Edit Story"),
         backgroundColor: Colors.blue,
       ),
@@ -62,38 +64,53 @@ class _EditStoryScreenState extends State<EditStoryScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Title Input
-              Text("Story Title", style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
+              Text(
+                "Story Title",
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+              ),
               SizedBox(height: 1.h),
               TextField(
                 controller: _titleController,
                 decoration: InputDecoration(
                   hintText: "Enter story title",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               SizedBox(height: 3.h),
 
               // Thumbnail Input
-              Text("Thumbnail URL", style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
+              Text(
+                "Thumbnail URL",
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+              ),
               SizedBox(height: 1.h),
               TextField(
                 controller: _thumbnailController,
                 decoration: InputDecoration(
                   hintText: "Enter thumbnail image URL",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               SizedBox(height: 3.h),
 
               // Pages Input
-              Text("Total Pages", style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
+              Text(
+                "Total Pages",
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+              ),
               SizedBox(height: 1.h),
               TextField(
                 controller: _pagesController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   hintText: "Enter number of pages",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
               SizedBox(height: 5.h),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 class ViewAllStoriesScreen extends StatelessWidget {
@@ -6,7 +7,6 @@ class ViewAllStoriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Dummy Hardcoded Data
     final List<Map<String, dynamic>> stories = [
       {
         "title": "The Brave Lion",
@@ -27,9 +27,16 @@ class ViewAllStoriesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("All Stories"),
+        leading: GestureDetector(
+          onTap: () => context.goNamed('multiMediaContent'),
+          child: const Icon(Icons.arrow_back),
+        ),
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+        title: const Text("All Stories"),
         backgroundColor: Colors.blue,
       ),
+
       body: Padding(
         padding: EdgeInsets.all(3.w),
         child: ListView.builder(
@@ -63,10 +70,11 @@ class ViewAllStoriesScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 15.sp),
                 ),
                 trailing: Icon(Icons.arrow_forward_ios, size: 18.sp),
+
                 onTap: () {
-                  // Later: Navigate to StoryPlayScreen or StoryDetailScreen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Open '${story["title"]}'")),
+                  context.goNamed(
+                    'storyDetailScreen',
+                    extra: story,
                   );
                 },
               ),

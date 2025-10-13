@@ -19,10 +19,10 @@ class ModuleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+      padding: EdgeInsets.symmetric(horizontal: 1.5.w, vertical: 1.h),
       child: Container(
         height: 20.h,
-        width: 100.w,
+        width: 80.w,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: gradientColors,

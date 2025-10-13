@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:responsive_sizer/responsive_sizer.dart';
 
 class VideoScreen extends StatefulWidget {
   const VideoScreen({super.key});
@@ -9,136 +10,210 @@ class VideoScreen extends StatefulWidget {
   State<VideoScreen> createState() => _VideoScreenState();
 }
 
-class _VideoScreenState extends State<VideoScreen> {
-
+class _VideoScreenState extends State<VideoScreen>
+    with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          // First card (Add New Video)
-          Padding(
-            padding: EdgeInsets.only(left: 5.w, top: 5.h, right: 5.w),
-            child: Container(
-              height: 25.h,
-              width: 100.w,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [const Color(0xFF0077B6), const Color(0xFF00B4D8)], // blue -> light blue
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF0F2027),
+              Color(0xFF203A43),
+              Color(0xFF2C5364),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                SizedBox(height: 5.h),
+                _buildFeatureCard(
+                  title: "Add New Video",
+                  subtitle: "Upload MP4 or YouTube link",
+                  icon: Icons.video_call_rounded,
+                  gradientColors: const [
+                    Color(0xFF5A189A), // deep purple
+                    Color(0xFF9D4EDD), // rich violet
+                  ],
+                  accentColor: const Color(0xFFC77DFF),
+                  onTap: () => context.goNamed('addVideoScreen'),
                 ),
-                borderRadius: const BorderRadius.all(Radius.circular(10)),
+
+                SizedBox(height: 3.h),
+
+                _buildFeatureCard(
+                  title: "View All Videos",
+                  subtitle: "Repository & video statuses",
+                  icon: Icons.video_library_rounded,
+                  gradientColors: const [
+                    Color(0xFF0077B6),
+                    Color(0xFF00B4D8),
+                  ],
+                  accentColor: const Color(0xFF90E0EF),
+                  onTap: () => context.goNamed('viewAllVideosScreen'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Color> gradientColors,
+    required Color accentColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 5.w),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 23.h,
+          width: 100.w,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            gradient: LinearGradient(
+              colors: gradientColors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: gradientColors.last.withOpacity(0.45),
+                blurRadius: 18,
+                spreadRadius: 1,
+                offset: const Offset(0, 8),
               ),
-              child: Padding(
-                padding: EdgeInsets.all(2.h),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: Container(
+                  width: 100.w,
+                  height: 10.h,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.15),
+                        Colors.transparent
+                      ],
+                      begin: Alignment.topRight,
+                      end: Alignment.bottomLeft,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(22),
+                      bottomLeft: Radius.circular(100),
+                    ),
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: EdgeInsets.all(3.h),
                 child: Row(
                   children: [
-                    // circular icon badge
+
                     Container(
                       height: 8.h,
                       width: 8.h,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
                         shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentColor.withOpacity(0.5),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          ),
+                        ],
                       ),
-                      child: Icon(Icons.video_call, color: Colors.white, size: 24.sp),
+                      child: Icon(
+                        icon,
+                        color: Colors.white,
+                        size: 28.sp,
+                      ),
                     ),
 
-                    SizedBox(width: 3.w),
+                    SizedBox(width: 4.w),
 
-                    // text column
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Add New Video",
-                          style: GoogleFonts.poppins(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                    // Text Section
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: GoogleFonts.poppins(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 1.h),
-                        Text(
-                          "Upload MP4 or YouTube link",
-                          style: GoogleFonts.poppins(
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white70,
+                          SizedBox(height: 1.h),
+                          Text(
+                            subtitle,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13.5.sp,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withOpacity(0.85),
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(height: 2.h),
+
+                          // "Continue" button chip
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 3.w, vertical: 0.8.h),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(25),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.25),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(width: 1.w),
+                                Text(
+                                  "Continue",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13.sp,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
-
-          // small gap between cards
-          SizedBox(height: 2.h),
-
-          // Second card (View All Videos)
-          Padding(
-            padding: EdgeInsets.only(left: 5.w, right: 5.w),
-            child: Container(
-              height: 25.h,
-              width: 100.w,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [const Color(0xFF00B4D8), const Color(0xFF90E0EF)], // light blue -> lighter
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.all(Radius.circular(10)),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(2.h),
-                child: Row(
-                  children: [
-                    Container(
-                      height: 8.h,
-                      width: 8.h,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.video_library, color: Colors.white, size: 24.sp),
-                    ),
-
-                    SizedBox(width: 3.w),
-
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "View All Videos",
-                          style: GoogleFonts.poppins(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(height: 1.h),
-                        Text(
-                          "Repository & video statuses",
-                          style: GoogleFonts.poppins(
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

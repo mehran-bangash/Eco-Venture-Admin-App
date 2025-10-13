@@ -36,10 +36,10 @@ class DashboardCard extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 17.sp,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.primaryBlue,
+                    color: Color(0xFF2E2E2E),
                   ),
                 ),
-                SizedBox(height: 2.h),
+                SizedBox(height: 1.h),
                 content, // <-- flexible widget passed from outside
               ],
             ),

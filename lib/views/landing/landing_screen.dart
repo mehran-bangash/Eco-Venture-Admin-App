@@ -1,4 +1,7 @@
+
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
@@ -10,20 +13,21 @@ class LandingScreen extends StatelessWidget {
     return ResponsiveSizer(
       builder: (context, orientation, screenType) {
         return Scaffold(
-          backgroundColor: const Color(0xFFF6F6F8), // background-light
+          backgroundColor: const Color(0xFFF5F7FA),
           body: Column(
             children: [
+              // ================== HEADER ==================
               Stack(
                 children: [
                   Container(
-                    height: 30.h,
+                    height: 32.h,
                     width: 100.w,
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Color(0xFF4F00BC), // purple
-                          Color(0xFF2D0C57), // deep violet
-                          Color(0xFF1A0A3A), // dark purple
+                          Color(0xFF2F5755),
+                          Color(0xFF1A2A6C),
+                          Color(0xFF000428),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -33,7 +37,7 @@ class LandingScreen extends StatelessWidget {
                   ClipPath(
                     clipper: WaveClipper(),
                     child: Container(
-                      height: 32.h,
+                      height: 34.h,
                       width: 100.w,
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
@@ -52,34 +56,51 @@ class LandingScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          padding: EdgeInsets.all(2.h),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.public,
-                            size: 6.h,
-                            color: Colors.white,
+                        FadeInDown(
+                          duration: const Duration(milliseconds: 700),
+                          child: Container(
+                            padding: EdgeInsets.all(2.5.h),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 20,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.public_rounded,
+                              size: 7.h,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                         SizedBox(height: 1.5.h),
-                        Text(
-                          "EcoVenture Admin Panel",
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 20.sp,
-                            fontWeight: FontWeight.w700,
+                        FadeInUp(
+                          duration: const Duration(milliseconds: 800),
+                          child: Text(
+                            "EcoVenture Admin Portal",
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 21.sp,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
                         SizedBox(height: 0.5.h),
-                        Text(
-                          "Place where we fix all problems",
-                          style: GoogleFonts.inter(
-                            color: Colors.white70,
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w600
+                        FadeInUp(
+                          duration: const Duration(milliseconds: 900),
+                          child: Text(
+                            "Empowering your eco-learning experience 🌍",
+                            style: GoogleFonts.poppins(
+                              color: Colors.white70,
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],
@@ -88,44 +109,70 @@ class LandingScreen extends StatelessWidget {
                 ],
               ),
 
+              // ================== ROLE CARDS ==================
               Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
-                  child: ListView(
-                    children: [
-                      RoleCard(
-                        icon: Icons.child_care,
-                        title: "Child",
-                        subtitle: "Manage child accounts",
-                      ),
-                      SizedBox(height: 2.h),
-                      RoleCard(
-                        icon: Icons.escalator_warning,
-                        title: "Parent",
-                        subtitle: "Manage parent accounts",
-                      ),
-                      SizedBox(height: 2.h),
-                      RoleCard(
-                        icon: Icons.school,
-                        title: "Teacher",
-                        subtitle: "Manage teacher accounts",
-                      ),
-                    ],
+                child: FadeInUp(
+                  duration: const Duration(milliseconds: 900),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+                    child: ListView(
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        RoleCard(
+                          icon: Icons.child_care_rounded,
+                          title: "Child",
+                          subtitle: "Manage child accounts",
+                          onTap: () => context.goNamed("bottomNavChild"),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFB24592), Color(0xFFF15F79)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        SizedBox(height: 2.5.h),
+                        RoleCard(
+                          icon: Icons.escalator_warning_rounded,
+                          title: "Parent",
+                          subtitle: "Manage parent accounts",
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF36D1DC), Color(0xFF5B86E5)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        SizedBox(height: 2.5.h),
+                        RoleCard(
+                          icon: Icons.school_rounded,
+                          title: "Teacher",
+                          subtitle: "Manage teacher accounts",
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
 
-              // ===== FOOTER =====
-              Padding(
-                padding: EdgeInsets.only(bottom: 2.h),
-                child: Text(
-                  "©2024 EcoVenture",
-                  style: GoogleFonts.inter(
-                    fontSize: 14.sp,
-                    color: Colors.grey,
+              // ================== FOOTER ==================
+              FadeIn(
+                duration: const Duration(milliseconds: 700),
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: 2.h),
+                  child: Text(
+                    "© 2025 EcoVenture | All rights reserved",
+                    style: GoogleFonts.poppins(
+                      fontSize: 14.sp,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
+              SizedBox(height: 1.h),
             ],
           ),
         );
@@ -134,80 +181,111 @@ class LandingScreen extends StatelessWidget {
   }
 }
 
-
-class RoleCard extends StatelessWidget {
+class RoleCard extends StatefulWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
+  final Gradient gradient;
 
   const RoleCard({
     super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
+    required this.gradient,
   });
 
   @override
+  State<RoleCard> createState() => _RoleCardState();
+}
+
+class _RoleCardState extends State<RoleCard> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(3.h),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(2.h),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.3),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 10,
-            spreadRadius: 2,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(1.5.h),
-            decoration: BoxDecoration(
-              color: const Color(0xFF4913EC).withOpacity(0.2), // primary
-              borderRadius: BorderRadius.circular(1.5.h),
-            ),
-            child: Icon(
-              icon,
-              size: 5.h,
-              color: const Color(0xFF4913EC), // primary color
-            ),
-          ),
-          SizedBox(width: 4.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.inter(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                ),
-              ),
-              SizedBox(height: 0.5.h),
-              Text(
-                subtitle,
-                style: GoogleFonts.inter(
-                  fontSize: 14.sp,
-                  color: Colors.grey[600],
-                ),
-              ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap?.call();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        transform: Matrix4.identity()
+          ..scale(_isPressed ? 0.97 : 1.0),
+        padding: EdgeInsets.all(3.h),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(2.h),
+          gradient: LinearGradient(
+            colors: [
+              Colors.white.withOpacity(0.85),
+              Colors.white.withOpacity(0.9),
             ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(_isPressed ? 0.05 : 0.15),
+              blurRadius: _isPressed ? 4 : 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(1.8.h),
+              decoration: BoxDecoration(
+                gradient: widget.gradient,
+                borderRadius: BorderRadius.circular(1.8.h),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                widget.icon,
+                size: 5.h,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 4.w),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E1E2F),
+                  ),
+                ),
+                SizedBox(height: 0.6.h),
+                Text(
+                  widget.subtitle,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14.5.sp,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
-
 
 class WaveClipper extends CustomClipper<Path> {
   @override
@@ -235,7 +313,6 @@ class WaveClipper extends CustomClipper<Path> {
 
     path.lineTo(size.width, 0);
     path.close();
-
     return path;
   }
 

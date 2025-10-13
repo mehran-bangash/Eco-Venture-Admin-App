@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 class ViewAllVideosScreen extends StatelessWidget {
@@ -34,6 +35,12 @@ class ViewAllVideosScreen extends StatelessWidget {
         title: const Text("All Uploaded Videos"),
         centerTitle: true,
         backgroundColor: Colors.blue.shade600,
+        automaticallyImplyLeading: false,
+        leading: GestureDetector(
+          onTap: () {
+            context.goNamed('multiMediaContent');
+          },
+            child: Icon(Icons.arrow_back_ios_new)),
       ),
       body: ListView.builder(
         padding: EdgeInsets.all(3.w),

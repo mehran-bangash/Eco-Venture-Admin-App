@@ -51,6 +51,12 @@ dependencies:
   shared_preferences: ^2.5.3
   percent_indicator: ^4.2.5
   fl_chart: ^1.1.1
+  image_picker: ^1.1.2
+  firebase_database: ^12.0.2
+  delightful_toast: ^1.1.0
+  animate_do: ^4.2.0
+
+
 
 dev_dependencies:
   flutter_test:

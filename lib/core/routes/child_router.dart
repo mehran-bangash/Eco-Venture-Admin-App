@@ -5,6 +5,7 @@ import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/multimedia_content_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/story_detail_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/view_all_stories_screen.dart';
+import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/view_all_videos_screen.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../navigation/bottom_nav_child.dart';
@@ -20,79 +21,60 @@ class ChildRouter {
   static final routes = GoRoute(
     path: RouteNames.bottomNavChild, // "/child"
     name: 'bottomNavChild',
-    builder: (context, state) =>
-        const BottomNavChild(), // wrap with your nav container
+    builder: (context, state) => const BottomNavChild(),
     routes: [
-      // GoRoute(
-      //     path: 'child-profile',
-      //     name: 'childProfile',
-      //     builder: (context, state) => const ChildProfile(),
-      //     routes: [
-      //       GoRoute(
-      //         path: 'edit-profile',
-      //         name: 'editProfile',
-      //         builder: (context, state) => const EditProfileScreen(),
-      //       )
-      //     ]
-      // ),
-      // GoRoute(
-      //   path: 'child-settings',
-      //   name: 'childSettings',
-      //   builder: (context, state) =>const ChildSettings(),
-      // ),
       GoRoute(
-        path: 'home', //  relative path, not /child/home
+        path: RouteNames.childHome, // "child-home"
         name: 'childHome',
         builder: (context, state) => const AdminChildHome(),
         routes: [
           GoRoute(
-            path: 'treasure-hunt',
+            path: RouteNames.treasureHunt, // "treasure-hunt"
             name: 'treasureHunt',
             builder: (context, state) => const TreasureHuntScreen(),
           ),
           GoRoute(
-            path: 'multimedia-content',
+            path: RouteNames.multiMediaContent, // "multimedia-content"
             name: 'multiMediaContent',
             builder: (context, state) => const MultimediaContentScreen(),
             routes: [
               GoRoute(
-                path: 'video-screen',
+                path: RouteNames.videoScreen, // "video-screen"
                 name: 'videoScreen',
                 builder: (context, state) => const VideoScreen(),
                 routes: [
                   GoRoute(
-                    path: 'add-video-screen',
+                    path: RouteNames.addVideoScreen, // "video-screen/add-video-screen"
                     name: 'addVideoScreen',
                     builder: (context, state) => const AddVideoScreen(),
                   ),
                   GoRoute(
-                    path: 'view-all-videos-screen',
-                    name: 'ViewAllVideosScreen',
-                    builder: (context, state) => const ViewAllStoriesScreen(),
+                    path: RouteNames.viewAllVideosScreen, // "video-screen/view-all-videos-screen"
+                    name: 'viewAllVideosScreen',
+                    builder: (context, state) => const ViewAllVideosScreen(),
                   ),
                 ],
               ),
               GoRoute(
-                path: 'story-screen',
+                path: RouteNames.storyScreen, // "story-screen"
                 name: 'storyScreen',
                 builder: (context, state) => const StoryScreen(),
                 routes: [
                   GoRoute(
-                    path: 'add-story-screen',
+                    path: RouteNames.addStoryScreen, // "story-screen/add-story-screen"
                     name: 'addStoryScreen',
                     builder: (context, state) => const AddStoryScreen(),
                   ),
                   GoRoute(
-                    path: 'view-all-stories-screen',
+                    path: RouteNames.viewAllStoriesScreen, // "story-screen/view-all-stories-screen"
                     name: 'viewAllStoriesScreen',
                     builder: (context, state) => const ViewAllStoriesScreen(),
                     routes: [
                       GoRoute(
-                        path: 'story-detail-screen',
+                        path: RouteNames.storyDetailScreen, // "story-screen/view-all-stories-screen/story-detail-screen"
                         name: 'storyDetailScreen',
                         builder: (context, state) {
-                          final extras =
-                              state.extra as Map<String, dynamic>? ?? {};
+                          final extras = state.extra as Map<String, dynamic>? ?? {};
                           return StoryDetailScreen(
                             title: extras['title'] as String?,
                             thumbnail: extras['thumbnail'] as String?,
@@ -101,11 +83,10 @@ class ChildRouter {
                         },
                       ),
                       GoRoute(
-                        path: 'edit-story-screen',
+                        path: RouteNames.editStoryScreen, // "story-screen/view-all-stories-screen/edit-story-screen"
                         name: 'editStoryScreen',
                         builder: (context, state) {
-                          final extras =
-                              state.extra as Map<String, dynamic>? ?? {};
+                          final extras = state.extra as Map<String, dynamic>? ?? {};
                           return EditStoryScreen(
                             title: extras['title'] as String?,
                             thumbnail: extras['thumbnail'] as String?,
@@ -120,18 +101,17 @@ class ChildRouter {
             ],
           ),
           GoRoute(
-            path: 'stem-challenges',
+            path: RouteNames.stemChallenges, // "stem-challenges"
             name: 'stemChallenges',
             builder: (context, state) => const StemChallengesScreen(),
           ),
           GoRoute(
-            path: 'nature-photo-journal',
+            path: RouteNames.naturePhotoJournal, // "nature-photo-journal"
             name: 'naturePhotoJournal',
             builder: (context, state) => const NaturePhotoJournalScreen(),
           ),
-
           GoRoute(
-            path: 'interactive-quiz',
+            path: RouteNames.interactiveQuiz, // "interactive-quiz"
             name: 'interactiveQuiz',
             builder: (context, state) => const InteractiveQuizScreen(),
           ),

@@ -1,11 +1,11 @@
-import 'package:eco_venture_admin_portal/core/constants/app_colors.dart';
+import 'dart:async';
 import 'package:eco_venture_admin_portal/views/child_section/widgets/Module_card.dart';
-import 'package:eco_venture_admin_portal/views/child_section/widgets/dashboard_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:responsive_sizer/responsive_sizer.dart';
 
 class AdminChildHome extends StatefulWidget {
   const AdminChildHome({super.key});
@@ -15,220 +15,341 @@ class AdminChildHome extends StatefulWidget {
 }
 
 class _AdminChildHomeState extends State<AdminChildHome> {
+  final ScrollController _scrollController = ScrollController();
+  late Timer _scrollTimer;
+
+  final List<Map<String, dynamic>> _modules = [
+    {
+      "title": "Interactive Quiz",
+      "subtitle": "Engaging knowledge tests",
+      "colors": [Color(0xFF4CAF50), Color(0xFF81C784)],
+    },
+    {
+      "title": "Multimedia Learning",
+      "subtitle": "Videos and stories",
+      "colors": [Color(0xFF42A5F5), Color(0xFF64B5F6)],
+    },
+    {
+      "title": "Nature Photo Journal",
+      "subtitle": "Visual documentation",
+      "colors": [Color(0xFF7E57C2), Color(0xFF9575CD)],
+    },
+    {
+      "title": "QR Treasure Hunt",
+      "subtitle": "Interactive exploration",
+      "colors": [Color(0xFFFFA726), Color(0xFFFFB74D)],
+    },
+    {
+      "title": "STEM Challenges",
+      "subtitle": "Science & Tech projects",
+      "colors": [Color(0xFFE91E63), Color(0xFFF06292)],
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() async {
+    while (mounted) {
+      await Future.delayed(const Duration(milliseconds: 50));
+      if (_scrollController.hasClients) {
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final current = _scrollController.offset;
+        double next = current + 1;
+        if (next >= maxScroll) next = 0;
+        _scrollController.jumpTo(next);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              //Header Section
-              _buildHeaderSection(),
-              SizedBox(height: 5.h),
-              Row(
-                children: [
-                  DashboardCard(
-                    title: "Total Children",
-                    content: Text(
-                      "125",
-                      style: GoogleFonts.poppins(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryBlue,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF2F5755), Color(0xFF0A3431)],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(vertical: 2.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeaderSection(),
+                SizedBox(height: 3.h),
+
+                // Dashboard Summary Cards
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 3.w),
+                  child: Wrap(
+                    spacing: 3.w,
+                    runSpacing: 2.h,
+                    children: [
+                      _buildDashboardCard(
+                        title: "Total Children",
+                        value: "125",
+                        icon: Icons.people_alt_rounded,
                       ),
-                    ),
-                  ),
-                  DashboardCard(
-                    title: "Modules Uploaded",
-                    content: Text(
-                      "25",
-                      style: GoogleFonts.poppins(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryBlue,
+                      _buildDashboardCard(
+                        title: "Modules Uploaded",
+                        value: "25",
+                        icon: Icons.folder_copy_rounded,
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  DashboardCard(
-                    title: "Average Progress",
-                    content: CircularPercentIndicator(
-                      radius: 40.0, // controls exact size
-                      lineWidth: 9.0,
-                      percent: 0.78,
-                      center: Text(
-                        "78%",
-                        style: GoogleFonts.poppins(
-                          fontSize: 17.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primaryBlue,
+                      _buildDashboardCard(
+                        title: "Active Challenges",
+                        value: "34",
+                        icon: Icons.flag_rounded,
+                      ),
+                      _buildDashboardCard(
+                        title: "Avg. Progress",
+                        valueWidget: CircularPercentIndicator(
+                          radius: 3.5.h,
+                          lineWidth: 1.5.w,
+                          percent: 0.78,
+                          center: Text(
+                            "78%",
+                            style: GoogleFonts.poppins(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          progressColor: Colors.amberAccent,
+                          backgroundColor: Colors.white24,
+                          circularStrokeCap: CircularStrokeCap.round,
                         ),
+                        icon: Icons.show_chart_rounded,
                       ),
-                      progressColor: AppColors.primaryBlue,
-                      backgroundColor: Colors.grey.shade300,
-                      circularStrokeCap: CircularStrokeCap.round,
-                      animation: true,
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 3.h),
+
+                // Auto Scrolling Modules Section
+                Padding(
+                  padding: EdgeInsets.only(left: 4.w, bottom: 1.h),
+                  child: Text(
+                    "Learning Modules",
+                    style: GoogleFonts.poppins(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
                     ),
                   ),
-                  DashboardCard(
-                    title: "Active Challenges",
-                    content: Text(
-                      "34",
-                      style: GoogleFonts.poppins(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryBlue,
-                      ),
-                    ),
+                ),
+
+                SizedBox(
+                  height: 20.h,
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _modules.length * 50,
+                    itemBuilder: (context, index) {
+                      final module = _modules[index % _modules.length];
+                      return GestureDetector(
+                        onTap: () {
+                          switch (module['title']) {
+                            case "Interactive Quiz":
+                              // context.goNamed("interactiveQuiz");
+                              break;
+
+                            case "Multimedia Learning":
+                              context.goNamed('multiMediaContent');
+                              break;
+
+                            case "Nature photo journal":
+                              // context.goNamed("naturePhotoJournal");
+                              break;
+
+                            case "QR Treasure Hunt":
+                              // context.goNamed("qrTreasureHunt");
+                              break;
+
+                            case "STEM Challenges":
+                              // context.goNamed("stemChallenges");
+                              break;
+
+                            default:
+                              print("No route found");
+                          }
+                        },
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 3.w),
+                          child: ModuleCard(
+                            title: module['title'],
+                            subtitle: module['subtitle'],
+                            gradientColors: module['colors'].cast<Color>(),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ],
-              ),
-              SizedBox(height: 1.h),
-              // Existing ones
-              ModuleCard(
-                title: "Interactive Quiz",
-                subtitle: "Engaging knowledge tests",
-                gradientColors: [Colors.green, Colors.lightGreen],
-              ),
+                ),
 
-              ModuleCard(
-                title: "Multimedia Learning",
-                subtitle: "video and story",
-                gradientColors: [Colors.blue, Colors.lightBlueAccent],
-              ),
+                SizedBox(height: 3.h),
 
-              ModuleCard(
-                title: "Nature photo journal",
-                subtitle: "visual documentation",
-                gradientColors: [Colors.deepPurple, Colors.purpleAccent],
-              ),
-
-              ModuleCard(
-                title: "QR Treasure Hunt",
-                subtitle: "interactive exploration ",
-                gradientColors: [Colors.orange, Colors.deepOrangeAccent],
-              ),
-
-              ModuleCard(
-                title: "STEM Challenges",
-                subtitle: "Science & teach projects",
-                gradientColors: [Colors.pink, Colors.redAccent],
-              ),
-              // Progress Overview
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
+                // Progress Overview
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
                   child: Text(
                     "Progress Overview",
                     style: GoogleFonts.poppins(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.white,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-              ),
-              buildProgressCard(),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
+                buildProgressCard(),
+
+                // Reward Section
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
                   child: Text(
-                    "Rewards and Gamification",
+                    "Top Performers",
                     style: GoogleFonts.poppins(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.white,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-              ),
-              _buildRewardCard(),
-              SizedBox(height: 5.h),
-            ],
+                _buildRewardCard(),
+
+                SizedBox(height: 5.h),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildRewardCard() {
+  /// Header Section
+  Widget _buildHeaderSection() {
     return Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-              child: Container(
-                height: 40.h,
-                width: 100.w,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(0xFF2196F3), // Blue
-                      Color(0xFF0D47A1), // Navy Blue
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+      padding: EdgeInsets.symmetric(horizontal: 4.w),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            "Child Modules &\nProgress Dashboard",
+            style: GoogleFonts.poppins(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(width: 4.w),
+          Flexible(
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amberAccent,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Column(children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Colors.white, // Only bottom border color
-                          width: 2,          // Thickness
-                        ),
-                    ),),
-                    child: Padding(
-                      padding:  EdgeInsets.only(top: 2.h,left: 10.w,bottom: 1.h),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Icon(Icons.emoji_events, color: Colors.yellow, size: 10.w), // Trophy
-                          SizedBox(width: 10.w),
-                          Icon(Icons.verified, color: Colors.white, size: 10.w), // Badge
-                          SizedBox(width: 10.w),
-                          Icon(Icons.eco, color: Colors.green, size: 10.w), // Leaf
-                          SizedBox(width: 10.w),
-                          Icon(Icons.local_fire_department, color: Colors.red, size: 10.w), // Fire
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 2.h,),
-                  Align(
-                    alignment: Alignment.center,
-                    child: Text(
-                      "Top 5 children by engagement ",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
-                  _buildStudentRow("Mehran A.", "2310 pts", "2"),
-                  _buildStudentRow("Muhammad M.", "2280 pts", "3"),
-                  _buildStudentRow("ALi A.", "2150 pts", "4"),
-                  _buildStudentRow("Bangash K.", "2090 pts", "5"),
-                ],),
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
               ),
-            );
+              onPressed: () {
+                context.goNamed('addModule');
+              },
+              icon: const Icon(Icons.add),
+              label: Text(
+                "Add New Module",
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.sp,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
+  /// Dashboard Card
+  Widget _buildDashboardCard({
+    required String title,
+    String? value,
+    Widget? valueWidget,
+    required IconData icon,
+  }) {
+    return Container(
+      width: 42.w,
+      padding: EdgeInsets.all(2.h),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withOpacity(0.08),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 6,
+            offset: const Offset(2, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: Colors.amberAccent, size: 25),
+              SizedBox(width: 1.w),
+              Flexible(
+                child: Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 1.h),
+          valueWidget ??
+              Text(
+                value ?? "--",
+                style: GoogleFonts.poppins(
+                  fontSize: 20.sp,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+
+  /// Progress Chart Card
   Widget buildProgressCard() {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      elevation: 6,
+      elevation: 8,
       margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.deepPurple, Colors.indigo],
+          gradient: const LinearGradient(
+            colors: [Color(0xFF7E57C2), Color(0xFF5C6BC0)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -238,7 +359,6 @@ class _AdminChildHomeState extends State<AdminChildHome> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Chart
             SizedBox(
               height: 20.h,
               child: BarChart(
@@ -303,20 +423,12 @@ class _AdminChildHomeState extends State<AdminChildHome> {
             ),
             SizedBox(height: 1.5.h),
             Center(
-              child: Container(
-                width: 100.w,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
-                  border: Border.all(width: 1, color: Colors.white),
-                ),
-                child: Text(
-                  "Module completion rates across all children",
-                  style: GoogleFonts.poppins(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white70,
-                  ),
-                  textAlign: TextAlign.center,
+              child: Text(
+                "Module completion rates across all children",
+                style: GoogleFonts.poppins(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white70,
                 ),
               ),
             ),
@@ -326,108 +438,119 @@ class _AdminChildHomeState extends State<AdminChildHome> {
     );
   }
 
-  Widget _buildHeaderSection() {
-    return Row(
-      children: [
-        Padding(
-          padding: EdgeInsets.only(left: 2.w),
-          child: Text(
-            "Child Modules & \nprogress",
-            style: GoogleFonts.poppins(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w700,
-              color: AppColors.background,
+  /// Reward / Leaderboard Card
+  Widget _buildRewardCard() {
+    final topPerformers = [
+      {"name": "Mehran A.", "points": "2310 pts", "rank": "1"},
+      {"name": "Muhammad M.", "points": "2280 pts", "rank": "2"},
+      {"name": "Ali A.", "points": "2150 pts", "rank": "3"},
+      {"name": "Bangash K.", "points": "2090 pts", "rank": "4"},
+    ];
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+      child: Container(
+        padding: EdgeInsets.all(2.h),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(2, 4),
             ),
-          ),
+          ],
         ),
-        SizedBox(width: 13.w),
-        Container(
-          height: 5.h,
-          width: 25.w,
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.all(Radius.circular(20)),
-          ),
-          child: Row(
-            children: [
-              Padding(
-                padding: EdgeInsets.only(left: 1.5.w, top: 1.h),
-                child: Icon(Icons.library_add),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.emoji_events, color: Colors.amberAccent, size: 40),
+                SizedBox(width: 20),
+                Icon(Icons.workspace_premium, color: Colors.white, size: 40),
+                SizedBox(width: 20),
+                Icon(Icons.star_rate, color: Colors.yellowAccent, size: 40),
+              ],
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              "Top 5 Children by Engagement",
+              style: GoogleFonts.poppins(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
               ),
-              Flexible(
-                child: Padding(
-                  padding: EdgeInsets.only(left: 1.5.w, top: 1.h),
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Text(
-                      "Add new Module",
-                      style: GoogleFonts.poppins(
-                        letterSpacing: 0.2,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primaryBlue,
-                      ),
+            ),
+            SizedBox(height: 2.h),
+            ...topPerformers
+                .map(
+                  (child) => _buildStudentRow(
+                    child["name"]!,
+                    child["points"]!,
+                    child["rank"]!,
+                  ),
+                )
+                .toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStudentRow(String name, String points, String rank) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 1.h, horizontal: 2.w),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.amberAccent,
+                  radius: 18,
+                  child: Text(
+                    rank,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(width: 1.5.w),
-        Expanded(
-          child: Container(
-            height: 7.h,
-            width: 25.w,
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-        SizedBox(width: 1.w),
-      ],
-    );
-  }
-}
-Widget _buildStudentRow(String name, String points, String rank) {
-  return Padding(
-    padding: EdgeInsets.symmetric(vertical: 1.h,horizontal: 4.w),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 20,
-              child: Text(rank,
+                SizedBox(width: 2.w),
+                Text(
+                  name,
                   style: GoogleFonts.poppins(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  )),
+                    fontSize: 15.sp,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-            SizedBox(width: 2.w),
             Text(
-              name,
+              points,
               style: GoogleFonts.poppins(
-                fontSize: 15.sp,
-                color: Colors.white,
-                fontWeight: FontWeight.w600
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.amberAccent,
               ),
             ),
           ],
         ),
-        Text(
-          points,
-          style: GoogleFonts.poppins(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w700,
-            color: Colors.yellowAccent,
-          ),
-        ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }

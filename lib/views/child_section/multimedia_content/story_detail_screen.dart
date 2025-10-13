@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-
-import 'edit_story_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class StoryDetailScreen extends StatelessWidget {
   final String? title;
@@ -10,41 +9,49 @@ class StoryDetailScreen extends StatelessWidget {
 
   const StoryDetailScreen({
     super.key,
-     this.title,
-     this.thumbnail,
-     this.pages,
+    this.title,
+    this.thumbnail,
+    this.pages,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Story Details"),
+        title: const Text("Story Details"),
+        automaticallyImplyLeading: false,
+        leading: GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+          },
+            child: Icon(Icons.arrow_back)),
+        centerTitle: true,
         backgroundColor: Colors.blue,
         actions: [
+          /// EDIT BUTTON → Navigates to EditStoryScreen
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.white),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditStoryScreen(
-                    title: title,
-                    thumbnail: thumbnail,
-                    pages: pages,
-                  ),
-                ),
+              // Using GoRouter for navigation
+              context.goNamed(
+                'editStoryScreen',
+                extra: {
+                  "title": title,
+                  "thumbnail": thumbnail,
+                  "pages": pages,
+                },
               );
 
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text("Edit '$title'")));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Editing '$title'...")),
+              );
             },
           ),
+
+          ///  DELETE BUTTON
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.white),
             onPressed: () {
-              // TODO: Add delete confirmation + Firebase delete
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
@@ -56,6 +63,9 @@ class StoryDetailScreen extends StatelessWidget {
                       child: const Text("Cancel"),
                     ),
                     ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
                       onPressed: () {
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -71,44 +81,51 @@ class StoryDetailScreen extends StatelessWidget {
           ),
         ],
       ),
+
+      ///  BODY SECTION
       body: SingleChildScrollView(
         padding: EdgeInsets.all(4.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Story Thumbnail
+            ///  Thumbnail
             ClipRRect(
               borderRadius: BorderRadius.circular(3.w),
               child: Image.network(
-                thumbnail!,
+                thumbnail ?? "",
                 height: 30.h,
                 width: 100.w,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
               ),
             ),
             SizedBox(height: 3.h),
 
-            // Story Title
+            /// Title
             Text(
-              title!,
-              style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
+              title ?? "Untitled Story",
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             SizedBox(height: 1.h),
 
-            // Story Info
+            ///  Pages Info
             Row(
               children: [
                 const Icon(Icons.book, color: Colors.grey),
                 SizedBox(width: 2.w),
                 Text(
-                  "Total Pages: $pages",
+                  "Total Pages: ${pages ?? 0}",
                   style: TextStyle(fontSize: 16.sp, color: Colors.grey[700]),
                 ),
               ],
             ),
             SizedBox(height: 3.h),
 
-            // Dummy Story Preview
+            ///  Story Preview
             Text(
               "Preview:",
               style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
