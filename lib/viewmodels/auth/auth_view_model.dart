@@ -1,3 +1,4 @@
+import 'package:eco_venture_admin_portal/repositories/admin_firestore_repo.dart';
 import 'package:eco_venture_admin_portal/services/shared_preferences_helper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../repositories/auth_repo.dart';
@@ -26,9 +27,12 @@ class AuthViewModel extends StateNotifier<AuthState> {
       //  Only update state and call onSuccess when login succeeds
       state = state.copyWith(isEmailLoading: false, admin: user);
 
-      await SharedPreferencesHelper.instance.saveAdminId(user.uid);
-      await SharedPreferencesHelper.instance.saveAdminName(user.name);
+      await SharedPreferencesHelper.instance.saveAdminId(user.aid);
       await SharedPreferencesHelper.instance.saveAdminEmail(user.email);
+      await AdminFirestoreRepo.instance.addAdminProfile(
+        aid: user.aid,
+        email: user.email,
+      );
       if (onSuccess != null) onSuccess();
     } catch (e) {
       state = state.copyWith(isEmailLoading: false, emailError: e.toString());

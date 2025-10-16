@@ -43,6 +43,13 @@ class CloudinaryRepository {
     await _databaseService.uploadStoryData(storyData);
   }
 
+  Future<String?>  uploadProfileImage(File file)async{
+     return await _cloudinaryService.uploadProfileImage(file);
+  }
+
+
+
+
   // Fetch all stories
   Future<List<Map<String, dynamic>>> getStories() async {
     return await _databaseService.fetchAdminStories();

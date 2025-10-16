@@ -1,12 +1,77 @@
-
 import 'package:animate_do/animate_do.dart';
+import 'package:eco_venture_admin_portal/repositories/admin_firestore_repo.dart';
+import 'package:eco_venture_admin_portal/services/shared_preferences_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-class LandingScreen extends StatelessWidget {
+class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
+
+  @override
+  State<LandingScreen> createState() => _LandingScreenState();
+}
+
+class _LandingScreenState extends State<LandingScreen> {
+  final TextEditingController _nameController = TextEditingController();
+
+  void _handleNavigation(BuildContext context, VoidCallback onNavigate)async {
+    if (_nameController.text.trim().isEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          backgroundColor: Colors.white,
+          title: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+              const SizedBox(width: 10),
+              Text(
+                "Missing Name",
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          content: Text(
+            "Please enter your name before navigating to the next screen.",
+            style: GoogleFonts.poppins(fontSize: 15),
+          ),
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF2F5755),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                "OK",
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      await SharedPreferencesHelper.instance.saveAdminName(_nameController.text);
+      final aid=await SharedPreferencesHelper.instance.getAdminId();
+      if(aid==null)return ;
+      await AdminFirestoreRepo.instance.updateAdminName(aid, _nameController.text);
+      onNavigate();
+    }
+  }
+
+
+
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -109,12 +174,64 @@ class LandingScreen extends StatelessWidget {
                 ],
               ),
 
-              // ================== ROLE CARDS ==================
+              // ================== NAME FIELD ==================
+              // ================== NAME FIELD ==================
+              FadeInUp(
+                duration: const Duration(milliseconds: 900),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(2.h),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 12,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _nameController,
+                      cursorColor: const Color(0xFF2F5755),
+                      style: GoogleFonts.poppins(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF1E1E2F),
+                      ),
+                      decoration: InputDecoration(
+                        hintText: "Enter your name",
+                        hintStyle: GoogleFonts.poppins(
+                          color: Colors.grey[500],
+                          fontSize: 16.sp,
+                        ),
+                        prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF2F5755)),
+                        suffixIcon:
+                        const Icon(Icons.check_circle_outline, color: Color(0xFF2F5755)),
+                        contentPadding: EdgeInsets.symmetric(vertical: 2.h),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(2.h),
+                          borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(2.h),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2F5755),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               Expanded(
                 child: FadeInUp(
                   duration: const Duration(milliseconds: 900),
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+                    padding:
+                    EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                     child: ListView(
                       physics: const BouncingScrollPhysics(),
                       children: [
@@ -122,7 +239,8 @@ class LandingScreen extends StatelessWidget {
                           icon: Icons.child_care_rounded,
                           title: "Child",
                           subtitle: "Manage child accounts",
-                          onTap: () => context.goNamed("bottomNavChild"),
+                          onTap: () => _handleNavigation(
+                              context, () => context.goNamed("bottomNavChild")),
                           gradient: const LinearGradient(
                             colors: [Color(0xFFB24592), Color(0xFFF15F79)],
                             begin: Alignment.topLeft,
@@ -134,6 +252,7 @@ class LandingScreen extends StatelessWidget {
                           icon: Icons.escalator_warning_rounded,
                           title: "Parent",
                           subtitle: "Manage parent accounts",
+                          onTap: () => _handleNavigation(context, () {}),
                           gradient: const LinearGradient(
                             colors: [Color(0xFF36D1DC), Color(0xFF5B86E5)],
                             begin: Alignment.topLeft,
@@ -145,6 +264,7 @@ class LandingScreen extends StatelessWidget {
                           icon: Icons.school_rounded,
                           title: "Teacher",
                           subtitle: "Manage teacher accounts",
+                          onTap: () => _handleNavigation(context, () {}),
                           gradient: const LinearGradient(
                             colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
                             begin: Alignment.topLeft,
@@ -172,7 +292,6 @@ class LandingScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: 1.h),
             ],
           ),
         );
@@ -215,8 +334,7 @@ class _RoleCardState extends State<RoleCard> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        transform: Matrix4.identity()
-          ..scale(_isPressed ? 0.97 : 1.0),
+        transform: Matrix4.identity()..scale(_isPressed ? 0.97 : 1.0),
         padding: EdgeInsets.all(3.h),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(2.h),

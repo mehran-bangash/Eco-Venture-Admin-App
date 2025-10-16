@@ -55,6 +55,7 @@ dependencies:
   firebase_database: ^12.0.2
   delightful_toast: ^1.1.0
   animate_do: ^4.2.0
+  cloud_firestore: ^6.0.3
 
 
 

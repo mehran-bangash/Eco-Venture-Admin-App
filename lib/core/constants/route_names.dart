@@ -13,6 +13,13 @@ class RouteNames {
   static const teacherHome = '/teacher/home';
   static const parentHome = '/parent/home';
 
+  // settings Screen
+  // admin settings
+  static const adminSettings = '/admin-settings';
+  static const adminEditProfile = 'edit-profile';
+  static const adminProfile = 'profile';
+
+
   // nested inside child
   static const treasureHunt = 'treasure-hunt';
   static const multiMediaContent = 'multimedia-content';

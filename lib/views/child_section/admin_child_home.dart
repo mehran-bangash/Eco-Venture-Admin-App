@@ -131,7 +131,7 @@ class _AdminChildHomeState extends State<AdminChildHome> {
                           backgroundColor: Colors.white24,
                           circularStrokeCap: CircularStrokeCap.round,
                         ),
-                        icon: Icons.show_chart_rounded,
+                        icon:  Icons.show_chart_rounded,
                       ),
                     ],
                   ),
@@ -496,7 +496,7 @@ class _AdminChildHomeState extends State<AdminChildHome> {
                     child["rank"]!,
                   ),
                 )
-                .toList(),
+                ,
           ],
         ),
       ),

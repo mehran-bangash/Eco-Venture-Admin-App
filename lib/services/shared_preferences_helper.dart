@@ -1,14 +1,16 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+
 class SharedPreferencesHelper {
   SharedPreferencesHelper._();
   static final SharedPreferencesHelper instance = SharedPreferencesHelper._();
 
-  static String adminIdKey = 'ADMINIDKEY';
-  static String adminNameKey = 'ADMINNAMEKEY';
-  static String adminEmailKey = 'ADMINEMAILKEY';
-  static String adminImageUrlKey = 'ADMINIMAGEURLKEY';
+  static const String adminIdKey = 'admin_id';
+  static const String adminNameKey = 'admin_name';
+  static const String adminEmailKey = 'admin_email';
+  static const String adminImgUrlKey = 'admin_img_url';
 
+  // ===== Save =====
   Future<bool> saveAdminId(String adminId) async {
     final pref = await SharedPreferences.getInstance();
     return pref.setString(adminIdKey, adminId);
@@ -24,11 +26,12 @@ class SharedPreferencesHelper {
     return pref.setString(adminEmailKey, adminEmail);
   }
 
-  Future<bool> saveAdminImageUrl(String adminImageUrl) async {
+  Future<bool> saveAdminImgUrl(String imgUrl) async {
     final pref = await SharedPreferences.getInstance();
-    return pref.setString(adminImageUrl, adminImageUrl);
+    return pref.setString(adminImgUrlKey, imgUrl);
   }
 
+  // ===== Get =====
   Future<String?> getAdminId() async {
     final pref = await SharedPreferences.getInstance();
     return pref.getString(adminIdKey);
@@ -46,14 +49,15 @@ class SharedPreferencesHelper {
 
   Future<String?> getAdminImgUrl() async {
     final pref = await SharedPreferences.getInstance();
-    return pref.getString(adminImageUrlKey);
+    return pref.getString(adminImgUrlKey);
   }
 
+  // ===== Clear =====
   Future<void> clearAll() async {
     final pref = await SharedPreferences.getInstance();
     await pref.remove(adminIdKey);
     await pref.remove(adminNameKey);
     await pref.remove(adminEmailKey);
-    await pref.remove(adminImageUrlKey);
+    await pref.remove(adminImgUrlKey);
   }
 }
