@@ -22,8 +22,10 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen> {
   final List<String> categories = [
     'Animals',
     'Ecosystem',
-    'Recycling',
-    'Climate',
+    'Maths',
+    'Science',
+     'Space',
+    'Plants'
   ];
 
   // Store the scaffold messenger to show snackbars

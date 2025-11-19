@@ -29,7 +29,7 @@ class _AddQuizScreenState extends ConsumerState<AddQuizScreen> {
   final TextEditingController _percentageController = TextEditingController(text: "60");
 
   String _selectedCategory = 'Animals';
-  final List<String> _categories = ['Animals', 'Ecosystem', 'Recycling', 'Climate'];
+  final List<String> _categories =  ['Animals', 'Ecosystem', 'Space', 'Science','Plants','Maths'];
 
   List<Map<String, dynamic>> _questions = [];
   File? _quizImage;

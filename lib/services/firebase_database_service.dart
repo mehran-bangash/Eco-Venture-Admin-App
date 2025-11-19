@@ -1,15 +1,23 @@
 import 'package:eco_venture_admin_portal/services/shared_preferences_helper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-
 import '../models/quiz_model.dart';
+
 
 class FirebaseDatabaseService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // Quiz Node Names defined as constants for safety
+  static const String _adminQuizNode = 'admin_quiz_content';
+  static const String _publicQuizNode = 'public_quiz_content';
+
   // Helper to generate a new key
   String _generateKey() => _database.ref().push().key!;
+
+  // ==================================================
+  // VIDEO & STORIES LOGIC (UNCHANGED - PERFECT STATE)
+  // ==================================================
 
   /// 1) Upload video metadata under Admin AND Public (atomic update)
   Future<void> uploadVideoDataAndPublic(Map<String, dynamic> videoData) async {
@@ -21,7 +29,10 @@ class FirebaseDatabaseService {
     final publicPath = 'Public/Videos/$videoId';
 
     // Admin node data
-    final adminData = {'id': videoId, ...videoData};
+    final adminData = {
+      'id': videoId,
+      ...videoData,
+    };
 
     // Public node data (ensure counters AND userLikes exist)
     final publicData = {
@@ -31,7 +42,7 @@ class FirebaseDatabaseService {
       'views': 0,
       'likes': 0,
       'dislikes': 0,
-      'userLikes': {}, // ✅ This ensures userLikes is created immediately
+      'userLikes': {},  // ✅ This ensures userLikes is created immediately
       'status': videoData['status'] ?? 'published',
     };
 
@@ -53,7 +64,10 @@ class FirebaseDatabaseService {
     final publicPath = 'Public/Stories/$storyId';
 
     // Admin node data
-    final adminData = {'id': storyId, ...storyData};
+    final adminData = {
+      'id': storyId,
+      ...storyData,
+    };
 
     // Public node data
     final publicData = {
@@ -95,7 +109,10 @@ class FirebaseDatabaseService {
   }) async {
     final adminPath = 'Admin/$adminUid/videos/$videoId';
     final publicPath = 'Public/Videos/$videoId';
-    final updates = <String, dynamic>{adminPath: null, publicPath: null};
+    final updates = <String, dynamic>{
+      adminPath: null,
+      publicPath: null,
+    };
     await _database.ref().update(updates);
   }
 
@@ -110,98 +127,148 @@ class FirebaseDatabaseService {
       return map;
     }).toList();
   }
-// ---------------- QUIZ FUNCTIONS ----------------
 
-  /// 1. ADD QUIZ
+
+  // ==================================================
+  // QUIZ LOGIC (UPDATED & FIXED)
+  // ==================================================
+
+  // 1. ADD: Create Quiz in BOTH nodes
   Future<void> addQuiz(QuizModel quiz) async {
     try {
-      String? adminUid = await SharedPreferencesHelper.instance.getAdminId();
-      if (adminUid == null) throw Exception("Admin ID missing");
+      // Try Prefs first, fallback to Auth to ensure we get an ID
+      String? currentAdminId = await SharedPreferencesHelper.instance.getAdminId();
+      if (currentAdminId == null || currentAdminId.isEmpty) {
+        currentAdminId = _auth.currentUser?.uid;
+      }
 
-      final quizId = _generateKey();
-      final quizWithMeta = quiz.copyWith(id: quizId, adminId: adminUid);
-      final data = quizWithMeta.toMap();
+      if (currentAdminId == null) throw Exception("Admin ID not found. Please login again.");
 
-      final adminPath = 'Admin/$adminUid/quizzes/${quiz.category}/$quizId';
-      final publicPath = 'Public/Quizzes/${quiz.category}/$quizId';
+      final String newKey = _generateKey();
 
-      await _database.ref().update({
-        adminPath: data,
-        publicPath: data,
-      });
+      // Ensure adminId is attached
+      final quizWithMeta = quiz.copyWith(id: newKey, adminId: currentAdminId);
+      final Map<String, dynamic> quizData = quizWithMeta.toMap();
+
+      final Map<String, dynamic> updates = {};
+
+      // 1. Write to Admin Private Node
+      updates['Admin/$currentAdminId/quizzes/${quiz.category}/$newKey'] = quizData;
+
+      // 2. Write to Public User Node
+      updates['Public/Quizzes/${quiz.category}/$newKey'] = quizData;
+
+      await _database.ref().update(updates);
+
     } catch (e) {
-      throw Exception("Failed to add quiz: $e");
+      throw Exception('Failed to add quiz: $e');
     }
   }
 
-  /// 2. UPDATE QUIZ
+  // 2. UPDATE: Update Quiz in BOTH nodes
   Future<void> updateQuiz(QuizModel quiz) async {
-    if (quiz.id == null) throw Exception("Quiz ID missing");
-
+    if (quiz.id == null) throw Exception("Quiz ID is missing for update");
     try {
-      String? adminUid = await SharedPreferencesHelper.instance.getAdminId();
-      if (adminUid == null) throw Exception("Admin ID missing");
+      String? currentAdminId = await SharedPreferencesHelper.instance.getAdminId();
+      if (currentAdminId == null || currentAdminId.isEmpty) {
+        currentAdminId = _auth.currentUser?.uid;
+      }
 
-      final quizWithMeta = quiz.adminId == null
-          ? quiz.copyWith(adminId: adminUid)
-          : quiz;
+      // Use the existing adminId on the quiz if available (for editing), else use current
+      final targetAdminId = quiz.adminId ?? currentAdminId;
 
-      final data = quizWithMeta.toMap();
+      if (targetAdminId == null) throw Exception("Target Admin ID missing");
 
-      final adminPath = 'Admin/$adminUid/quizzes/${quiz.category}/${quiz.id}';
-      final publicPath = 'Public/Quizzes/${quiz.category}/${quiz.id}';
+      // Ensure the quiz object has the admin ID
+      final quizWithMeta = quiz.copyWith(adminId: targetAdminId);
+      final quizData = quizWithMeta.toMap();
 
-      await _database.ref().update({
-        adminPath: data,
-        publicPath: data,
-      });
+      final Map<String, dynamic> updates = {};
+
+      // 1. Update Admin Node
+      updates['Admin/$targetAdminId/quizzes/${quiz.category}/${quiz.id}'] = quizData;
+
+      // 2. Update Public Node
+      updates['Public/Quizzes/${quiz.category}/${quiz.id}'] = quizData;
+
+      await _database.ref().update(updates);
     } catch (e) {
-      throw Exception("Failed to update quiz: $e");
+      throw Exception('Failed to update quiz: $e');
     }
   }
 
-  /// 3. DELETE QUIZ
+  // 3. DELETE: Remove from BOTH nodes
   Future<void> deleteQuiz(String quizId, String category) async {
     try {
-      String? adminUid = await SharedPreferencesHelper.instance.getAdminId();
-      if (adminUid == null) throw Exception("Admin ID missing");
+      String? currentAdminId = await SharedPreferencesHelper.instance.getAdminId();
+      if (currentAdminId == null || currentAdminId.isEmpty) {
+        currentAdminId = _auth.currentUser?.uid;
+      }
 
-      final adminPath = 'Admin/$adminUid/quizzes/$category/$quizId';
-      final publicPath = 'Public/Quizzes/$category/$quizId';
+      if (currentAdminId == null) throw Exception("Admin ID not found.");
 
-      await _database.ref().update({
-        adminPath: null,
-        publicPath: null,
-      });
+      final Map<String, dynamic> updates = {};
+
+      // 1. Delete from Admin Node (Set to null)
+      updates['Admin/$currentAdminId/quizzes/$category/$quizId'] = null;
+
+      // 2. Delete from Public Node (Set to null)
+      updates['Public/Quizzes/$category/$quizId'] = null;
+
+      await _database.ref().update(updates);
     } catch (e) {
-      throw Exception("Failed to delete quiz: $e");
+      throw Exception('Failed to delete quiz: $e');
     }
   }
 
-  /// 4. REALTIME QUIZ STREAM
+  // 4. FETCH: STREAM (FIXED MAP TYPE CRASH)
   Stream<List<QuizModel>> getQuizzesStream(String category) async* {
-    String? adminUid = await SharedPreferencesHelper.instance.getAdminId();
-    if (adminUid == null) throw Exception("Admin ID missing");
+    // 1. Await Admin ID
+    String? currentAdminId = await SharedPreferencesHelper.instance.getAdminId();
+    if (currentAdminId == null || currentAdminId.isEmpty) {
+      currentAdminId = _auth.currentUser?.uid;
+    }
 
-    yield* _database
-        .ref('Admin/$adminUid/quizzes/$category')
-        .onValue
-        .map((event) {
-      final data = event.snapshot.value as Map?;
+    if (currentAdminId == null) {
+      yield []; // Return empty if no ID
+      return;
+    }
+
+    // 2. Listen to Database
+    yield* _database.ref('Admin/$currentAdminId/quizzes/$category').onValue.map((event) {
+      final data = event.snapshot.value;
       if (data == null) return [];
 
-      final list = data.entries.map((e) {
-        return QuizModel.fromMap(e.key, Map<String, dynamic>.from(e.value));
-      }).toList();
+      try {
+        // Cast to Map<dynamic, dynamic> first (Firebase default)
+        final Map<dynamic, dynamic> mapData = data as Map<dynamic, dynamic>;
+        final List<QuizModel> quizzes = [];
 
-      list.sort((a, b) => a.order.compareTo(b.order));
-      return list;
+        mapData.forEach((key, value) {
+          // --- CRITICAL FIX ---
+          // Convert the value (which is Map<Object, Object>) to Map<String, dynamic>
+          // This prevents the "type cast" error.
+          final quizMap = Map<String, dynamic>.from(value as Map);
+
+          quizzes.add(QuizModel.fromMap(key.toString(), quizMap));
+        });
+
+        // Sort by Order #
+        quizzes.sort((a, b) => a.order.compareTo(b.order));
+
+        return quizzes;
+      } catch (e) {
+        print("Error parsing quiz stream: $e");
+        return [];
+      }
     });
   }
 
-  /// 5. FETCH SINGLE QUIZ
+  // 5. FETCH SINGLE QUIZ
   Future<QuizModel?> getSingleQuiz(String quizId, String category) async {
     String? adminUid = await SharedPreferencesHelper.instance.getAdminId();
+    if (adminUid == null) adminUid = _auth.currentUser?.uid;
+
     if (adminUid == null) throw Exception("Admin ID missing");
 
     final snap = await _database
@@ -210,10 +277,7 @@ class FirebaseDatabaseService {
 
     if (!snap.exists) return null;
 
-    return QuizModel.fromMap(
-      quizId,
-      Map<String, dynamic>.from(snap.value as Map),
-    );
+    final data = Map<String, dynamic>.from(snap.value as Map);
+    return QuizModel.fromMap(quizId, data);
   }
-
 }

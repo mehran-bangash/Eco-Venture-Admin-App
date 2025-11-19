@@ -1,4 +1,5 @@
 
+
 class QuizModel {
   String? id;
   String category;
@@ -7,7 +8,7 @@ class QuizModel {
   int passingPercentage;
   String? imageUrl;
   List<QuestionModel> questions;
-  String? adminId; // Added: This tracks the admin ID
+  String? adminId;
 
   QuizModel({
     this.id,
@@ -17,7 +18,7 @@ class QuizModel {
     required this.passingPercentage,
     this.imageUrl,
     required this.questions,
-    this.adminId, // Added to constructor
+    this.adminId,
   });
 
   Map<String, dynamic> toMap() {
@@ -28,7 +29,7 @@ class QuizModel {
       'passing_percentage': passingPercentage,
       'image_url': imageUrl,
       'questions': questions.map((x) => x.toMap()).toList(),
-      'admin_id': adminId, // Added to Map
+      'admin_id': adminId,
     };
   }
 
@@ -42,14 +43,17 @@ class QuizModel {
       imageUrl: map['image_url'],
       questions: List<QuestionModel>.from(
         (map['questions'] as List<dynamic>? ?? []).map<QuestionModel>(
-              (x) => QuestionModel.fromMap(x as Map<String, dynamic>),
+              (x) {
+            // FIX: Safely convert the generic Map to Map<String, dynamic>
+            // "x as Map<String, dynamic>" causes the crash.
+            return QuestionModel.fromMap(Map<String, dynamic>.from(x as Map));
+          },
         ),
       ),
-      adminId: map['admin_id'], // Added from Map
+      adminId: map['admin_id'],
     );
   }
 
-  // This fixes the "undefined_named_parameter" error
   QuizModel copyWith({
     String? id,
     String? category,
@@ -58,7 +62,7 @@ class QuizModel {
     int? passingPercentage,
     String? imageUrl,
     List<QuestionModel>? questions,
-    String? adminId, // Added parameter
+    String? adminId,
   }) {
     return QuizModel(
       id: id ?? this.id,
@@ -68,7 +72,7 @@ class QuizModel {
       passingPercentage: passingPercentage ?? this.passingPercentage,
       imageUrl: imageUrl ?? this.imageUrl,
       questions: questions ?? this.questions,
-      adminId: adminId ?? this.adminId, // Added assignment
+      adminId: adminId ?? this.adminId,
     );
   }
 }

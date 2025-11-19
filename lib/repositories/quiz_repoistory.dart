@@ -1,7 +1,8 @@
 import '../models/quiz_model.dart';
-import '../services/firebase_database_service.dart';
+import '../services/firebase_database_service.dart'; // Correct Import
 
 class QuizRepository {
+
   final FirebaseDatabaseService _db;
 
   QuizRepository(this._db);
@@ -20,9 +21,5 @@ class QuizRepository {
 
   Stream<List<QuizModel>> watchQuizzes(String category) {
     return _db.getQuizzesStream(category);
-  }
-
-  Future<QuizModel?> getSingleQuiz(String quizId, String category) {
-    return _db.getSingleQuiz(quizId, category);
   }
 }
