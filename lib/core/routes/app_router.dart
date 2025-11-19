@@ -10,7 +10,7 @@ import 'child_router.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: RouteNames.landing, // Default route
+    initialLocation: RouteNames.login,
     routes: [
       GoRoute(
         path: RouteNames.landing,
@@ -28,9 +28,9 @@ class AppRouter {
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
 
-      //  Admin Settings Parent Route
+      // Admin Settings Parent Route
       GoRoute(
-        path: '/admin-settings',
+        path: RouteNames.adminSettings,
         name: 'adminSettings',
         builder: (context, state) => const AdminSettings(),
         routes: [
@@ -47,8 +47,8 @@ class AppRouter {
         ],
       ),
 
-      //  Include child routes
-        ChildRouter.routes,
+      // Include child routes
+      ChildRouter.routes,
     ],
   );
 }

@@ -19,4 +19,10 @@ class AuthRepo {
     await AuthServices.instance.forgotPassword(email);
   }
 
+  Future<void> signOutAdmin() async {
+    await AuthServices.instance.signOut();
+  }
+  Future<void> deleteAccount()async{
+    await AuthServices.instance.deleteAccount();
+  }
 }

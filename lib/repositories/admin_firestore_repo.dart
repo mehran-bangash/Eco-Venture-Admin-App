@@ -30,6 +30,8 @@ class AdminFirestoreRepo {
 
   Future<AdminModel?> getAdminProfile(String aid)async{
     return await AdminFirestoreService.getInstance.getAdminProfile(aid);
-
+  }
+  Future<void> deleteAdminData(String aid) async {
+    await AdminFirestoreService.getInstance.deleteAdminData(aid);
   }
 }

@@ -80,4 +80,20 @@ class AdminFirestoreService {
       return null;
     }
   }
+  Future<void> deleteAdminData(String aid) async {
+    try {
+      final adminDoc = _firestore.collection('Admins').doc(aid);
+
+      // Check if admin exists before deleting
+      final docSnapshot = await adminDoc.get();
+      if (docSnapshot.exists) {
+        await adminDoc.delete();
+        print(" Admin data deleted from Firestore for ID: $aid");
+      } else {
+        print(" No admin found with ID: $aid");
+      }
+    } catch (e) {
+      throw Exception("Failed to delete admin data: $e");
+    }
+  }
 }

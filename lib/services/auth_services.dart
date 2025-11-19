@@ -36,5 +36,37 @@ class AuthServices {
       throw Exception(e.message ?? "Something went wrong");
     }
   }
+
+  Future<void>  signOut()async{
+    try {
+      await _auth.signOut();
+    } on FirebaseAuthException catch (e) {
+      throw Exception(e.message ?? "Something went wrong");
+    }
+
+
+  }
+
+  Future<void> deleteAccount() async {
+    try {
+      final user = _auth.currentUser;
+
+      if (user != null) {
+        await user.delete(); // Deletes from Firebase Authentication
+      } else {
+        throw Exception("No user currently signed in");
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        throw Exception("Please log in again before deleting your account.");
+      } else {
+        throw Exception(e.message ?? "Failed to delete account");
+      }
+    } catch (e) {
+      throw Exception("Unexpected error: $e");
+    }
+  }
+
+
 }
 

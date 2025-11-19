@@ -165,7 +165,7 @@ class _AdminChildHomeState extends State<AdminChildHome> {
                         onTap: () {
                           switch (module['title']) {
                             case "Interactive Quiz":
-                              // context.goNamed("interactiveQuiz");
+                              context.goNamed("interactiveQuiz");
                               break;
 
                             case "Multimedia Learning":

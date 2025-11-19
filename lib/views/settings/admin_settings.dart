@@ -1,3 +1,4 @@
+import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:eco_venture_admin_portal/services/shared_preferences_helper.dart';
 import 'package:eco_venture_admin_portal/views/settings/widgets/settings_tile.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../viewmodels/auth/auth_provider.dart';
 import '../../core/constants/app_gradients.dart';
+import '../../core/utils/utils.dart';
 
 class AdminSettings extends StatefulWidget {
   const AdminSettings({super.key});
@@ -250,25 +252,25 @@ class _AdminSettingsState extends State<AdminSettings>
                           ),
                         );
 
-                        // // Step 2: If confirmed, call ViewModel
-                        // if (confirmed == true) {
-                        //   await authVM.signOut();
-                        //
-                        //   // Step 3: Show feedback to user
-                        //   Utils.showDelightToast(
-                        //     context,
-                        //     "User successfully logged out",
-                        //     duration: Duration(seconds: 3),
-                        //     textColor: Colors.white,
-                        //     bgColor: Colors.green,
-                        //     position: DelightSnackbarPosition.bottom,
-                        //     icon: Icons.check,
-                        //     iconColor: Colors.white,
-                        //   );
-                        //
-                        //   // Step 4: Navigate to login page
-                        //   context.goNamed('login');
-                        // }
+                        // Step 2: If confirmed, call ViewModel
+                        if (confirmed == true) {
+                          await authVM.signOut();
+
+                          // Step 3: Show feedback to user
+                          Utils.showDelightToast(
+                            context,
+                            "User successfully logged out",
+                            duration: Duration(seconds: 3),
+                            textColor: Colors.white,
+                            bgColor: Colors.green,
+                            position: DelightSnackbarPosition.bottom,
+                            icon: Icons.check,
+                            iconColor: Colors.white,
+                          );
+
+                          // Step 4: Navigate to login page
+                          context.goNamed('login');
+                        }
                       },
                     );
                   },

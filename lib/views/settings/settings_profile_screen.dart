@@ -1,110 +1,123 @@
+// lib/views/settings/settings_profile_screen.dart
 
+import 'package:delightful_toast/toast/utils/enums.dart';
+import 'package:eco_venture_admin_portal/viewmodels/auth/auth_provider.dart';
 import 'package:eco_venture_admin_portal/views/settings/widgets/profile_info_tile.dart';
 import 'package:eco_venture_admin_portal/views/settings/widgets/settings_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../../core/constants/app_gradients.dart';
+import '../../core/utils/utils.dart';
 import '../../services/shared_preferences_helper.dart';
 
-
-class SettingsProfileScreen extends StatefulWidget {
+class SettingsProfileScreen extends ConsumerStatefulWidget {
   const SettingsProfileScreen({super.key});
 
   @override
-  State<SettingsProfileScreen> createState() => _SettingsProfileScreenState();
+  ConsumerState<SettingsProfileScreen> createState() => _SettingsProfileScreenState();
 }
 
-class _SettingsProfileScreenState extends State<SettingsProfileScreen> {
+class _SettingsProfileScreenState extends ConsumerState<SettingsProfileScreen> {
   String username = "Guest";
-  String userEmail= "";
-  String userImageUrl="";
+  String userEmail = "";
+  String userImageUrl = "";
 
   @override
   void initState() {
-    // TODO: implement initState
-    _loadSharedPreferences();
     super.initState();
+    _loadSharedPreferences();
   }
-  // Future<void> _handleDeleteAccount(BuildContext context) async {
-  //   final confirmed = await showDialog<bool>(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text("Delete Account"),
-  //       content: const Text(
-  //         "Are you sure you want to permanently delete your account?",
-  //       ),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(context, false),
-  //           child: const Text("Cancel"),
-  //         ),
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(context, true),
-  //           child: const Text(
-  //             "Delete",
-  //             style: TextStyle(color: Colors.redAccent),
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  //
-  //   if (confirmed == true) {
-  //     final uid = await SharedPreferencesHelper.instance.getAdminId();
-  //
-  //     if (uid != null) {
-  //       try {
-  //         await ref.read(userProfileProvider.notifier).deleteUserProfile(uid);
-  //
-  //         //  Success banner
-  //         if (mounted) {
-  //           Utils.showDelightToast(
-  //             context,
-  //             "Account Deleted Successfully",
-  //             duration: Duration(seconds: 3),
-  //             textColor: Colors.white,
-  //             bgColor: Colors.green,
-  //             position: DelightSnackbarPosition.bottom,
-  //             icon: Icons.check,
-  //             iconColor: Colors.white,
-  //           );
-  //
-  //           // Redirect to landing page
-  //           context.goNamed('landing');
-  //         }
-  //       } catch (e) {
-  //         if (mounted) {
-  //           ScaffoldMessenger.of(context).showSnackBar(
-  //             SnackBar(
-  //               content: Text("Failed to delete account: $e"),
-  //               behavior: SnackBarBehavior.floating,
-  //               backgroundColor: Colors.redAccent,
-  //             ),
-  //           );
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
-
-
 
   Future<void> _loadSharedPreferences() async {
     final name = await SharedPreferencesHelper.instance.getAdminName();
-    final email= await SharedPreferencesHelper.instance.getAdminEmail();
-    final image=await SharedPreferencesHelper.instance.getAdminImgUrl();
+    final email = await SharedPreferencesHelper.instance.getAdminEmail();
+    final image = await SharedPreferencesHelper.instance.getAdminImgUrl();
 
+    if (!mounted) return;
     setState(() {
       username = name ?? "Guest";
-      userEmail= email ?? "";
-      userImageUrl=image?? "";
-
+      userEmail = email ?? "";
+      userImageUrl = image ?? "";
     });
   }
+
+  Future<void> _handleDeleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Account"),
+        content: const Text(
+          "Are you sure you want to permanently delete your account?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              "Delete",
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final uid = await SharedPreferencesHelper.instance.getAdminId();
+    if (uid == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No user id found.")),
+        );
+      }
+      return;
+    }
+
+    try {
+      // Call the viewmodel function. Because this widget is a ConsumerState,
+      // `ref` is available here and points to the WidgetRef.
+      await ref.read(authViewModelProvider.notifier).deleteAdminAccount();
+
+      if (!mounted) return;
+      Utils.showDelightToast(
+        context,
+        "Account Deleted Successfully",
+        duration: const Duration(seconds: 3),
+        textColor: Colors.white,
+        bgColor: Colors.green,
+        position: DelightSnackbarPosition.bottom,
+        icon: Icons.check,
+        iconColor: Colors.white,
+      );
+
+      // Clear local cached data and navigate to landing (if desired)
+      await SharedPreferencesHelper.instance.clearAll();
+
+      // navigate to landing
+      if (mounted) context.goNamed('login');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to delete account: $e"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // You can watch auth state if you need to show loading state or errors:
+    final authState = ref.watch(authViewModelProvider);
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -123,48 +136,53 @@ class _SettingsProfileScreenState extends State<SettingsProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Padding(
-                          padding:  EdgeInsets.only(left: 4.w,top: 2.5.h,right: 4.w),
+                          padding: EdgeInsets.only(left: 4.w, top: 2.5.h, right: 4.w),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               GestureDetector(
-                                onTap: () {
-                                  context.goNamed('bottomNavChild');
-                                },
+                                onTap: () => context.goNamed('bottomNavChild'),
                                 child: Align(
                                   alignment: Alignment.bottomLeft,
                                   child: Container(
                                     height: 4.h,
                                     width: 8.w,
                                     decoration: BoxDecoration(
-                                        color: Colors.blueGrey,
-                                        borderRadius: BorderRadius.all(Radius.circular(10))
+                                      color: Colors.blueGrey,
+                                      borderRadius: BorderRadius.all(Radius.circular(10)),
                                     ),
-                                    child: Icon(
+                                    child: const Icon(
                                       Icons.arrow_back_ios_new,
                                       color: Colors.white,
                                     ),
                                   ),
                                 ),
                               ),
-                              Align(
-                                alignment: Alignment.bottomRight,
-                                child: Container(
-                                  height: 4.h,
-                                  width: 8.w,
-                                  decoration: BoxDecoration(
-                                      color: Colors.white70.withValues(alpha: 0.3),
-                                      borderRadius: BorderRadius.all(Radius.circular(10))
-                                  ),
-                                  child: Icon(
-                                    Icons.refresh,
-                                    color: Colors.white,
+                              GestureDetector(
+                                onTap: () async {
+                                  await _loadSharedPreferences();
+                                  // Optionally you can also refresh from Firestore by calling the appropriate provider method here
+                                },
+                                child: Align(
+                                  alignment: Alignment.bottomRight,
+                                  child: Container(
+                                    height: 4.h,
+                                    width: 8.w,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white70.withOpacity(0.3),
+                                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                                    ),
+                                    child: const Icon(
+                                      Icons.refresh,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(height: 8),
                         Material(
                           elevation: 10,
                           borderRadius: BorderRadius.circular(10.h),
@@ -185,7 +203,6 @@ class _SettingsProfileScreenState extends State<SettingsProfileScreen> {
                             ),
                           ),
                         ),
-
                         SizedBox(height: 0.5.h),
                         Text(
                           username,
@@ -218,9 +235,7 @@ class _SettingsProfileScreenState extends State<SettingsProfileScreen> {
                 _buildPersonalInfoCard(),
                 SizedBox(height: 2.h),
                 GestureDetector(
-                  onTap: () {
-                    context.goNamed('editProfile');
-                  },
+                  onTap: () => context.goNamed('editProfile'),
                   child: SettingsTile(
                     title: "Edit Profile",
                     subtitle: "Update your personal \ninformation",
@@ -230,35 +245,34 @@ class _SettingsProfileScreenState extends State<SettingsProfileScreen> {
                       height: 5.h,
                       width: 10.w,
                       decoration: BoxDecoration(
-                        color: Colors.blueGrey.withValues(alpha: 0.2),
+                        color: Colors.blueGrey.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(Icons.arrow_forward_ios, color: Colors.blue),
+                      child: const Icon(Icons.arrow_forward_ios, color: Colors.blue),
                     ),
                   ),
                 ),
                 SizedBox(height: 2.h),
                 SettingsTile(
-                  // onPressed:() => _handleDeleteAccount(context) ,
+                  onPressed: () => _handleDeleteAccount(),
                   title: "Delete Account",
                   titleColor: Colors.redAccent,
                   subtitle: "Permanently remove your \naccount",
-                  circleColor: Colors.redAccent.withValues(alpha: 0.4),
+                  circleColor: Colors.redAccent.withOpacity(0.4),
                   leadingIcon: Icons.delete,
                   trailing: Container(
                     height: 5.h,
                     width: 10.w,
                     decoration: BoxDecoration(
-                      color: Colors.redAccent.withValues(alpha: 0.2),
+                      color: Colors.redAccent.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.arrow_forward_ios,
                       color: Colors.redAccent,
                     ),
                   ),
                 ),
-
                 SizedBox(height: 5.h),
               ],
             ),
@@ -273,13 +287,13 @@ class _SettingsProfileScreenState extends State<SettingsProfileScreen> {
       padding: EdgeInsets.only(left: 2.w, right: 2.w),
       child: Material(
         elevation: 10,
-        borderRadius: BorderRadius.all(Radius.circular(15)),
+        borderRadius: const BorderRadius.all(Radius.circular(15)),
         child: Container(
           height: 26.h,
           width: 100.w,
           decoration: BoxDecoration(
             color: Colors.white70,
-            borderRadius: BorderRadius.all(Radius.circular(15)),
+            borderRadius: const BorderRadius.all(Radius.circular(15)),
           ),
           child: Padding(
             padding: EdgeInsets.only(top: 7.h, left: 3.w),
@@ -293,12 +307,12 @@ class _SettingsProfileScreenState extends State<SettingsProfileScreen> {
                         width: 14.w,
                         decoration: BoxDecoration(
                           gradient: AppGradients.buttonGradient,
-                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                          borderRadius: const BorderRadius.all(Radius.circular(10)),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.person,
                           color: Colors.white,
-                          size: 8.w,
+                          size: 50,
                         ),
                       ),
                       Column(
