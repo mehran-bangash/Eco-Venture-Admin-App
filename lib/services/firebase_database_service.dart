@@ -2,13 +2,13 @@ import 'package:eco_venture_admin_portal/services/shared_preferences_helper.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/quiz_model.dart';
-
+import '../models/stem_challenge_model.dart';
 
 class FirebaseDatabaseService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Quiz Node Names defined as constants for safety
+  // Node Names defined as constants for safety (Used for Quizzes)
   static const String _adminQuizNode = 'admin_quiz_content';
   static const String _publicQuizNode = 'public_quiz_content';
 
@@ -16,7 +16,7 @@ class FirebaseDatabaseService {
   String _generateKey() => _database.ref().push().key!;
 
   // ==================================================
-  // VIDEO & STORIES LOGIC (UNCHANGED - PERFECT STATE)
+  // VIDEO & STORIES LOGIC (UNCHANGED)
   // ==================================================
 
   /// 1) Upload video metadata under Admin AND Public (atomic update)
@@ -130,7 +130,7 @@ class FirebaseDatabaseService {
 
 
   // ==================================================
-  // QUIZ LOGIC (UPDATED & FIXED)
+  // QUIZ LOGIC (UNCHANGED)
   // ==================================================
 
   // 1. ADD: Create Quiz in BOTH nodes
@@ -279,5 +279,168 @@ class FirebaseDatabaseService {
 
     final data = Map<String, dynamic>.from(snap.value as Map);
     return QuizModel.fromMap(quizId, data);
+  }
+
+
+  // ==================================================
+  // STEM CHALLENGES DATA METHODS (NEW)
+  // ==================================================
+
+  // 1. ADD STEM CHALLENGE
+  Future<void> addStemChallenge(StemChallengeModel challenge) async {
+    try {
+      String? currentAdminId = await SharedPreferencesHelper.instance.getAdminId();
+      if (currentAdminId == null || currentAdminId.isEmpty) {
+        currentAdminId = _auth.currentUser?.uid;
+      }
+      if (currentAdminId == null) throw Exception("Admin ID not found.");
+
+      final String newKey = _generateKey();
+
+      // Add Meta Data
+      final challengeWithMeta = challenge.copyWith(id: newKey, adminId: currentAdminId);
+      final Map<String, dynamic> data = challengeWithMeta.toMap();
+
+      final Map<String, dynamic> updates = {};
+
+      // Path 1: Private Admin Node
+      updates['Admin/$currentAdminId/stem_challenges/${challenge.category}/$newKey'] = data;
+
+      // Path 2: Public User Node
+      updates['Public/StemChallenges/${challenge.category}/$newKey'] = data;
+
+      await _database.ref().update(updates);
+
+    } catch (e) {
+      throw Exception('Failed to add STEM challenge: $e');
+    }
+  }
+
+  // 2. UPDATE STEM CHALLENGE
+  Future<void> updateStemChallenge(StemChallengeModel challenge) async {
+    if (challenge.id == null) throw Exception("Challenge ID is missing");
+    try {
+      String? currentAdminId = await SharedPreferencesHelper.instance.getAdminId();
+      if (currentAdminId == null || currentAdminId.isEmpty) {
+        currentAdminId = _auth.currentUser?.uid;
+      }
+
+      // Use existing adminId if present, else current
+      final targetAdminId = challenge.adminId ?? currentAdminId;
+
+      if (targetAdminId == null) throw Exception("Target Admin ID missing");
+
+      final challengeWithMeta = challenge.copyWith(adminId: targetAdminId);
+      final data = challengeWithMeta.toMap();
+
+      final Map<String, dynamic> updates = {};
+
+      // Path 1: Private Admin Node
+      updates['Admin/$targetAdminId/stem_challenges/${challenge.category}/${challenge.id}'] = data;
+
+      // Path 2: Public User Node
+      updates['Public/StemChallenges/${challenge.category}/${challenge.id}'] = data;
+
+      await _database.ref().update(updates);
+    } catch (e) {
+      throw Exception('Failed to update STEM challenge: $e');
+    }
+  }
+
+  // 3. DELETE STEM CHALLENGE
+  Future<void> deleteStemChallenge(String challengeId, String category) async {
+    try {
+      String? currentAdminId = await SharedPreferencesHelper.instance.getAdminId();
+      if (currentAdminId == null || currentAdminId.isEmpty) {
+        currentAdminId = _auth.currentUser?.uid;
+      }
+      if (currentAdminId == null) throw Exception("Admin ID not found.");
+
+      final Map<String, dynamic> updates = {};
+
+      // Set both paths to null
+      updates['Admin/$currentAdminId/stem_challenges/$category/$challengeId'] = null;
+      updates['Public/StemChallenges/$category/$challengeId'] = null;
+
+      await _database.ref().update(updates);
+    } catch (e) {
+      throw Exception('Failed to delete STEM challenge: $e');
+    }
+  }
+
+  // 4. FETCH: STREAM (Admin side)
+  Stream<List<StemChallengeModel>> getStemChallengesStream(String category) async* {
+    String? currentAdminId = await SharedPreferencesHelper.instance.getAdminId();
+    if (currentAdminId == null || currentAdminId.isEmpty) {
+      currentAdminId = _auth.currentUser?.uid;
+    }
+
+    if (currentAdminId == null) {
+      yield [];
+      return;
+    }
+
+    // Listen to specific category under Admin node
+    // If 'All' is selected, we might need a different strategy or iterate all cats.
+    // For now, assuming filtering by specific category path.
+    // If category is 'All', you typically fetch all sub-nodes, which is complex in RTDB structure.
+    // Best practice: Fetch all if category == 'All', or specific if not.
+
+    Query query;
+    if (category == 'All') {
+      // Fetching 'All' is tricky because they are nested by category.
+      // We will fetch the parent 'stem_challenges' node and flatten it.
+      query = _database.ref('Admin/$currentAdminId/stem_challenges');
+    } else {
+      query = _database.ref('Admin/$currentAdminId/stem_challenges/$category');
+    }
+
+    yield* query.onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return [];
+
+      try {
+        final List<StemChallengeModel> challenges = [];
+        final Map<dynamic, dynamic> mapData = data as Map<dynamic, dynamic>;
+
+        if (category == 'All') {
+          // Structure: { Science: {id1: data}, Technology: {id2: data} }
+          mapData.forEach((catKey, catData) {
+            final innerMap = catData as Map<dynamic, dynamic>;
+            innerMap.forEach((key, value) {
+              final challengeMap = Map<String, dynamic>.from(value as Map);
+              challenges.add(StemChallengeModel.fromMap(key.toString(), challengeMap));
+            });
+          });
+        } else {
+          // Structure: { id1: data, id2: data }
+          mapData.forEach((key, value) {
+            final challengeMap = Map<String, dynamic>.from(value as Map);
+            challenges.add(StemChallengeModel.fromMap(key.toString(), challengeMap));
+          });
+        }
+
+        return challenges;
+      } catch (e) {
+        print("Error parsing STEM stream: $e");
+        return [];
+      }
+    });
+  }
+
+  // 5. FETCH SINGLE CHALLENGE
+  Future<StemChallengeModel?> getSingleStemChallenge(String challengeId, String category) async {
+    String? adminUid = await SharedPreferencesHelper.instance.getAdminId();
+    adminUid ??= _auth.currentUser?.uid;
+    if (adminUid == null) throw Exception("Admin ID missing");
+
+    final snap = await _database
+        .ref('Admin/$adminUid/stem_challenges/$category/$challengeId')
+        .get();
+
+    if (!snap.exists) return null;
+
+    final data = Map<String, dynamic>.from(snap.value as Map);
+    return StemChallengeModel.fromMap(challengeId, data);
   }
 }

@@ -21,7 +21,7 @@ class RouteNames {
   // nested inside child
   static const treasureHunt = '/child/treasure-hunt';
   static const multiMediaContent = '/child/multimedia-content';
-  static const stemChallenges = '/child/stem-challenges';
+
   static const naturePhotoJournal = '/child/nature-photo-journal';
 
   static const childProfile = '/child/profile';
@@ -42,4 +42,10 @@ class RouteNames {
   static const interactiveQuiz = '/child/interactive-quiz';
   static const addQuizScreen = '/child/interactive-quiz/add';
   static const editQuizScreen= '/child/interactive-quiz/edit';
+
+  // STEM challenges
+  static const stemChallengesScreen = '/child/stem-challenges-screen';
+  static const addStemChallengesScreen='/child/stem-challenges-screen/add-stem-challenges-screen';
+  static const editStemChallengeScreen='/child/stem-challenges-screen/edit-stem-challenges-screen';
+
 }

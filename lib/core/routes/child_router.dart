@@ -1,4 +1,7 @@
 import 'package:eco_venture_admin_portal/models/quiz_model.dart';
+import 'package:eco_venture_admin_portal/models/stem_challenge_model.dart';
+import 'package:eco_venture_admin_portal/views/child_section/%20stem_challenges_screen/add_stem_challenges_screen.dart';
+import 'package:eco_venture_admin_portal/views/child_section/%20stem_challenges_screen/edit_stem_challenges_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/admin_child_home.dart';
 import 'package:eco_venture_admin_portal/views/child_section/interactive_quiz_screen/add_quiz_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/interactive_quiz_screen/edit_quiz_screen.dart';
@@ -103,9 +106,26 @@ class ChildRouter {
             ],
           ),
           GoRoute(
-            path: RouteNames.stemChallenges,
-            name: 'stemChallenges',
+            path: RouteNames.stemChallengesScreen,
+            name: 'stemChallengesScreen',
             builder: (context, state) => const StemChallengesScreen(),
+            routes: [
+              GoRoute(
+                path: RouteNames.addStemChallengesScreen,
+                name: "addStemChallengesScreen",
+                builder: (context, state) => AddStemChallengeScreen(),
+
+              ),
+              GoRoute(
+                path: RouteNames.editStemChallengeScreen,
+                name: 'editStemChallengesScreen',
+                builder: (context, state) {
+                  final stemChallenge = state.extra as StemChallengeModel;
+
+                  return EditStemChallengeScreen( challenge: stemChallenge,);
+                },
+              )
+            ]
           ),
           GoRoute(
             path: RouteNames.naturePhotoJournal,

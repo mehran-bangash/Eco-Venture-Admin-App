@@ -181,7 +181,7 @@ class _AdminChildHomeState extends State<AdminChildHome> {
                               break;
 
                             case "STEM Challenges":
-                              // context.goNamed("stemChallenges");
+                               context.goNamed("stemChallengesScreen");
                               break;
 
                             default:

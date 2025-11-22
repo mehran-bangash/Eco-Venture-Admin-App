@@ -8,20 +8,19 @@ class CloudinaryRepository {
 
   CloudinaryRepository(this._cloudinaryService, this._databaseService);
 
-  // --- NEW: Quiz Image Upload ---
-  /// Uploads an image for a Quiz Question or Level to Cloudinary,
-  /// organized by Admin ID and Category.
+  // --- NEW: Upload STEM Challenge Image ---
+  Future<String?> uploadStemImage(File file, String category) async {
+    return await _cloudinaryService.uploadStemImage(file, category: category);
+  }
+  // Existing Quiz Upload
   Future<String?> uploadQuizImage(File file, String category) async {
-    // This calls the specific function we created in the service layer
     return await _cloudinaryService.uploadQuizImage(file, category: category);
   }
-  // -----------------------------
 
   /// Upload a single file (video or image)
   Future<String?> uploadSingleFile(File file, {required bool isVideo}) {
     return _cloudinaryService.uploadFile(file, isVideo: isVideo);
   }
-
   /// Upload both video + thumbnail together to Cloudinary
   Future<Map<String, String?>> uploadVideoAndThumbnail({
     required File videoFile,
@@ -36,7 +35,8 @@ class CloudinaryRepository {
     };
   }
 
-  /// Save Video Metadata to Firebase (Admin + Public simultaneously)
+  // ... (Rest of your existing methods: saveVideoData, saveStoryData, uploadProfileImage) ...
+
   Future<void> saveVideoData({
     required String title,
     required String description,
@@ -47,19 +47,14 @@ class CloudinaryRepository {
   }) async {
     final Map<String, dynamic> videoData = {
       'title': title,
-      //'description': description,
-      //'category': category,
       'videoUrl': videoUrl,
       'thumbnailUrl': thumbnailUrl,
       'duration': duration,
       'uploadedAt': DateTime.now().toIso8601String(),
     };
-
-    // Assuming _databaseService has this method for RTDB fan-out
     // await _databaseService.uploadVideoDataAndPublic(videoData);
   }
 
-  /// Upload Story Metadata to Firebase (Admin + Public simultaneously)
   Future<void> saveStoryData({
     required String title,
     required String thumbnailUrl,
@@ -71,12 +66,9 @@ class CloudinaryRepository {
       'pages': pages,
       'uploadedAt': DateTime.now().toIso8601String(),
     };
-
-    // Assuming _databaseService has this method for RTDB fan-out
     // await _databaseService.uploadStoryDataAndPublic(storyData);
   }
 
-  /// Upload admin profile image to Cloudinary
   Future<String?> uploadProfileImage(File file) async {
     return await _cloudinaryService.uploadProfileImage(file);
   }
