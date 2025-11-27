@@ -1,30 +1,30 @@
-import '../../../models/quiz_model.dart';
+import '../../../models/quiz_topic_model.dart';
 
 
 class QuizState {
   final bool isLoading;
-  final List<QuizModel> quizzes;
+  final List<QuizTopicModel> topics; // Changed from QuizModel
   final String? errorMessage;
-  final bool isSuccess; // For one-time actions like "Saved Successfully"
+  final bool isSuccess;
 
   QuizState({
     this.isLoading = false,
-    this.quizzes = const [],
+    this.topics = const [],
     this.errorMessage,
     this.isSuccess = false,
   });
 
   QuizState copyWith({
     bool? isLoading,
-    List<QuizModel>? quizzes,
+    List<QuizTopicModel>? topics,
     String? errorMessage,
     bool? isSuccess,
   }) {
     return QuizState(
       isLoading: isLoading ?? this.isLoading,
-      quizzes: quizzes ?? this.quizzes,
-      errorMessage: errorMessage, // Reset error if not passed
-      isSuccess: isSuccess ?? false, // Reset success flag by default
+      topics: topics ?? this.topics,
+      errorMessage: errorMessage,
+      isSuccess: isSuccess ?? false,
     );
   }
 }

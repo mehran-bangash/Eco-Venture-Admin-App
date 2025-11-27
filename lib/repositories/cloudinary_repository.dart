@@ -1,6 +1,6 @@
 import 'dart:io';
 import '../services/cloudinary_service.dart';
-import '../services/firebase_database_service.dart'; // Retaining the user's import
+import '../services/firebase_database_service.dart';
 
 class CloudinaryRepository {
   final CloudinaryService _cloudinaryService;
@@ -8,68 +8,38 @@ class CloudinaryRepository {
 
   CloudinaryRepository(this._cloudinaryService, this._databaseService);
 
-  // --- NEW: Upload STEM Challenge Image ---
-  Future<String?> uploadStemImage(File file, String category) async {
-    return await _cloudinaryService.uploadStemImage(file, category: category);
-  }
-  // Existing Quiz Upload
-  Future<String?> uploadQuizImage(File file, String category) async {
-    return await _cloudinaryService.uploadQuizImage(file, category: category);
-  }
+  // ==================================================
+  //  MODULE SPECIFIC UPLOAD FUNCTIONS
+  // ==================================================
 
-  /// Upload a single file (video or image)
-  Future<String?> uploadSingleFile(File file, {required bool isVideo}) {
-    return _cloudinaryService.uploadFile(file, isVideo: isVideo);
-  }
-  /// Upload both video + thumbnail together to Cloudinary
-  Future<Map<String, String?>> uploadVideoAndThumbnail({
-    required File videoFile,
-    required File thumbnailFile,
-  }) async {
-    final videoUrl = await _cloudinaryService.uploadFile(videoFile, isVideo: true);
-    final thumbnailUrl = await _cloudinaryService.uploadFile(thumbnailFile, isVideo: false);
-
-    return {
-      'videoUrl': videoUrl,
-      'thumbnailUrl': thumbnailUrl,
-    };
+  // 1. STEM CHALLENGES
+  Future<String?> uploadStemImage(File file) async {
+    return await _cloudinaryService.uploadStemImage(file);
   }
 
-  // ... (Rest of your existing methods: saveVideoData, saveStoryData, uploadProfileImage) ...
-
-  Future<void> saveVideoData({
-    required String title,
-    required String description,
-    required String category,
-    required String videoUrl,
-    required String thumbnailUrl,
-    required String duration,
-  }) async {
-    final Map<String, dynamic> videoData = {
-      'title': title,
-      'videoUrl': videoUrl,
-      'thumbnailUrl': thumbnailUrl,
-      'duration': duration,
-      'uploadedAt': DateTime.now().toIso8601String(),
-    };
-    // await _databaseService.uploadVideoDataAndPublic(videoData);
+  // 2. QUIZZES
+  Future<String?> uploadQuizImage(File file) async {
+    return await _cloudinaryService.uploadQuizImage(file);
   }
 
-  Future<void> saveStoryData({
-    required String title,
-    required String thumbnailUrl,
-    required List<Map<String, String>> pages,
-  }) async {
-    final Map<String, dynamic> storyData = {
-      'title': title,
-      'thumbnailUrl': thumbnailUrl,
-      'pages': pages,
-      'uploadedAt': DateTime.now().toIso8601String(),
-    };
-    // await _databaseService.uploadStoryDataAndPublic(storyData);
+  // 3. MULTIMEDIA (Videos & Thumbnails)
+  // Returns the URL String
+  Future<String?> uploadMultimediaFile(File file, {bool isVideo = false}) async {
+    return await _cloudinaryService.uploadMultimediaFile(file, isVideo: isVideo);
   }
 
+  // 4. QR TREASURE HUNT
+  Future<String?> uploadQrHuntImage(File file) async {
+    return await _cloudinaryService.uploadQrHuntImage(file);
+  }
+
+  // 5. ADMIN PROFILE
   Future<String?> uploadProfileImage(File file) async {
     return await _cloudinaryService.uploadProfileImage(file);
+  }
+
+  // --- HELPER: DELETE ---
+  Future<void> deleteImage(String imageUrl) async {
+    await _cloudinaryService.deleteImage(imageUrl);
   }
 }

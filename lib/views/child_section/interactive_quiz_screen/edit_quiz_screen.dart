@@ -1,560 +1,566 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import '../../../models/quiz_model.dart';
+
+import '../../../models/quiz_topic_model.dart';
 import '../../../viewmodels/child_section/interactive_quiz/quiz_provider.dart';
 
 class EditQuizScreen extends ConsumerStatefulWidget {
-  final QuizModel quizData;
+  final QuizTopicModel topic;
 
-  const EditQuizScreen({super.key, required this.quizData});
+  const EditQuizScreen({super.key, required this.topic});
 
   @override
   ConsumerState<EditQuizScreen> createState() => _EditQuizScreenState();
 }
 
 class _EditQuizScreenState extends ConsumerState<EditQuizScreen> {
+  // --- PRO COLOR PALETTE ---
   final Color _primary = const Color(0xFF05664F);
-  final Color _bg = const Color(0xFFF2F4F7);
-  final Color _textDark = Colors.black;
-  final Color _textLabel = const Color(0xFF333333);
-  final Color _border = const Color(0xFFCFD8DC);
+  final Color _bg = const Color(0xFFF8F9FA);
+  final Color _surface = Colors.white;
+  final Color _textDark = const Color(0xFF1A1D1E);
+  final Color _textGrey = const Color(0xFF546E7A);
+  final Color _border = const Color(0xFFE9ECEF);
 
-  late TextEditingController _titleController;
-  late TextEditingController _levelController;
-  late TextEditingController _percentageController;
+  // --- CONTROLLERS ---
+  late TextEditingController _topicNameController;
 
+  // --- STATE ---
   late String _selectedCategory;
-  final List<String> _categories = ['Animals', 'Ecosystem', 'Space', 'Science','Plants','Maths'];
-
-  // Local state for questions list
-  late List<Map<String, dynamic>> _questions;
-
-  File? _coverImageFile;
-  String? _coverImageUrl;
+  final List<String> _categories =['Animals', 'Ecosystem', 'Science', 'Space','Plants','Mathematics'];
+  late List<QuizLevelModel> _levels;
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.quizData.title);
-    _levelController = TextEditingController(text: widget.quizData.order.toString());
-    _percentageController = TextEditingController(text: widget.quizData.passingPercentage.toString());
-    _selectedCategory = widget.quizData.category;
-
-    // Deep copy of questions to allow editing without modifying original until save
-    _questions = widget.quizData.questions.map((q) => q.toMap()).toList();
-    _coverImageUrl = widget.quizData.imageUrl;
+    _topicNameController = TextEditingController(text: widget.topic.topicName);
+    _selectedCategory = widget.topic.category;
+    _levels = List<QuizLevelModel>.from(widget.topic.levels);
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _levelController.dispose();
-    _percentageController.dispose();
+    _topicNameController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickCoverImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-
-    if (pickedFile != null) {
-      setState(() {
-        _coverImageFile = File(pickedFile.path);
-        _coverImageUrl = null;
-      });
+  Future<void> _updateTopic() async {
+    if (_topicNameController.text.trim().isEmpty) {
+      _showError("Please enter a Topic Name");
+      return;
     }
+    if (_levels.isEmpty) {
+      _showError("Please ensure there is at least one Level");
+      return;
+    }
+
+    final updatedTopic = widget.topic.copyWith(
+      category: _selectedCategory,
+      topicName: _topicNameController.text.trim(),
+      levels: _levels,
+    );
+
+    await ref.read(quizViewModelProvider.notifier).updateTopic(updatedTopic);
   }
 
-  ImageProvider? _getCoverImage() {
-    if (_coverImageFile != null) return FileImage(_coverImageFile!);
-    if (_coverImageUrl != null && _coverImageUrl!.isNotEmpty) return NetworkImage(_coverImageUrl!);
-    return null;
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg, style: TextStyle(fontSize: 14.sp)), backgroundColor: Colors.red.shade700, behavior: SnackBarBehavior.floating),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final quizState = ref.watch(quizViewModelProvider);
 
+    ref.listen(quizViewModelProvider, (previous, next) {
+      if (next.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Topic Updated Successfully!", style: TextStyle(fontSize: 14.sp)), backgroundColor: _primary, behavior: SnackBarBehavior.floating),
+        );
+        ref.read(quizViewModelProvider.notifier).resetSuccess();
+        Navigator.pop(context);
+      }
+      if (next.errorMessage != null) {
+        _showError(next.errorMessage!);
+      }
+    });
+
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
-        backgroundColor: _primary,
+        backgroundColor: _surface,
+        surfaceTintColor: _surface,
         elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_new, color: _textDark, size: 19.sp),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Edit Quiz Level",
-          style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 15.sp,
-              letterSpacing: 0.5),
+          "Edit Topic",
+          style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.w700, fontSize: 18.sp),
         ),
-        centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: quizState.isLoading ? null : _updateTopic,
+            child: quizState.isLoading
+                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: _primary))
+                : Text("Save", style: GoogleFonts.poppins(color: _primary, fontWeight: FontWeight.bold, fontSize: 16.sp)),
+          ),
+          SizedBox(width: 2.w),
+        ],
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Container(color: _border, height: 1),
+        ),
       ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                Container(
-                  width: double.infinity,
-                  color: _primary,
-                  padding: EdgeInsets.fromLTRB(5.w, 2.h, 5.w, 4.h),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Update Content", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w800)),
-                      SizedBox(height: 0.5.h),
-                      Text("Modifying: ${widget.quizData.title}", style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.9), fontSize: 10.sp)),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w),
-                  child: Column(
-                    children: [
-                      _buildFormCard(),
-                      SizedBox(height: 4.h),
-                      _buildQuestionsHeader(),
-                      SizedBox(height: 2.h),
-                      _questions.isEmpty
-                          ? _buildEmptyQuestionsState()
-                          : ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _questions.length,
-                        separatorBuilder: (_, __) => SizedBox(height: 2.h),
-                        itemBuilder: (_, i) => _buildQuestionCard(i, _questions[i]),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- SECTION 1: GENERAL INFO ---
+            Text("General Info", style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w700, color: _textGrey)),
+            SizedBox(height: 1.5.h),
+
+            Container(
+              padding: EdgeInsets.all(5.w),
+              decoration: BoxDecoration(
+                color: _surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                border: Border.all(color: _border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildProLabel("Topic Category"),
+                  SizedBox(height: 1.h),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 4.w),
+                    decoration: BoxDecoration(
+                      color: _bg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _border),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedCategory,
+                        isExpanded: true,
+                        icon: Icon(Icons.keyboard_arrow_down_rounded, color: _textDark, size: 22.sp),
+                        items: _categories.map((c) => DropdownMenuItem(
+                            value: c,
+                            child: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w600))
+                        )).toList(),
+                        onChanged: (val) => setState(() => _selectedCategory = val!),
                       ),
-                      SizedBox(height: 5.h),
-                      _buildSaveButton(quizState.isLoading),
-                      SizedBox(height: 5.h),
-                    ],
+                    ),
                   ),
-                ),
+                  SizedBox(height: 3.h),
+
+                  _buildProLabel("Topic Title"),
+                  SizedBox(height: 1.h),
+                  _buildProTextField(controller: _topicNameController, hint: "e.g. Solar System", icon: Icons.title_rounded),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 4.h),
+
+            // --- SECTION 2: LEVELS ---
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Levels Config", style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w700, color: _textGrey)),
+                InkWell(
+                  onTap: () => _showLevelEditor(),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                    decoration: BoxDecoration(
+                      color: _primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.add_rounded, size: 18.sp, color: _primary),
+                        SizedBox(width: 1.5.w),
+                        Text("Add Level", style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.bold, color: _primary)),
+                      ],
+                    ),
+                  ),
+                )
               ],
             ),
-          ),
-          if (quizState.isLoading)
-            Container(
-              color: Colors.black54,
-              child: Center(
-                child: CircularProgressIndicator(color: Colors.white),
+            SizedBox(height: 1.5.h),
+
+            if (_levels.isEmpty)
+              _buildEmptyState()
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _levels.length,
+                separatorBuilder: (c, i) => SizedBox(height: 2.h),
+                itemBuilder: (context, index) => _buildProLevelCard(index, _levels[index]),
               ),
-            ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildFormCard() {
-    return Container(
-      padding: EdgeInsets.all(5.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildLabel("Category"),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
-            decoration: BoxDecoration(
-              border: Border.all(color: _border, width: 1.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedCategory,
-                isExpanded: true,
-                items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: GoogleFonts.poppins(fontWeight: FontWeight.w700)))).toList(),
-                onChanged: (val) => setState(() => _selectedCategory = val!),
-              ),
-            ),
-          ),
-          SizedBox(height: 2.5.h),
-          _buildLabel("Quiz Title"),
-          _buildTextField(controller: _titleController, hint: "Quiz Title", icon: Icons.title),
-          SizedBox(height: 2.5.h),
-          Row(
-            children: [
-              Expanded(child: _buildLabelledTextField("Order #", _levelController, Icons.sort, true)),
-              SizedBox(width: 4.w),
-              Expanded(child: _buildLabelledTextField("Pass %", _percentageController, Icons.percent, true)),
-            ],
-          ),
-          SizedBox(height: 2.5.h),
-          _buildLabel("Cover Image"),
-          InkWell(
-            onTap: _pickCoverImage,
-            child: Container(
-              height: 12.h,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _primary, width: 2),
-                image: _getCoverImage() != null
-                    ? DecorationImage(image: _getCoverImage()!, fit: BoxFit.cover)
-                    : null,
-              ),
-              child: _getCoverImage() == null
-                  ? Center(child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.edit), SizedBox(width: 2.w), Text("Pick Image")]))
-                  : Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.red),
-                  onPressed: () => setState(() {
-                    _coverImageFile = null;
-                    _coverImageUrl = null;
-                  }),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLabel(String text) => Padding(
-    padding: EdgeInsets.only(bottom: 1.h),
-    child: Text(text.toUpperCase(), style: GoogleFonts.poppins(fontSize: 9.sp, fontWeight: FontWeight.w900, color: _textLabel)),
-  );
-
-  Widget _buildTextField({required TextEditingController controller, required String hint, required IconData icon}) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
-
-  Widget _buildLabelledTextField(String label, TextEditingController controller, IconData icon, bool isNumber) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _buildLabel(label),
-      _buildTextField(controller: controller, hint: label, icon: icon),
-    ]);
-  }
-
-  Widget _buildQuestionsHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text("Questions (${_questions.length})", style: GoogleFonts.poppins(fontWeight: FontWeight.w800)),
-        ElevatedButton.icon(
-          onPressed: () => _showQuestionSheet(),
-          icon: const Icon(Icons.add, size: 16),
-          label: const Text("ADD NEW"),
-          style: ElevatedButton.styleFrom(backgroundColor: _textDark, foregroundColor: Colors.white),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestionCard(int index, Map<String, dynamic> question) {
-    bool hasImage = question['image_url'] != null;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300, width: 1.5),
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-        leading: hasImage
-            ? ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(question['image_url'], width: 12.w, height: 12.w, fit: BoxFit.cover,
-            errorBuilder: (c,e,s) => Icon(Icons.image_not_supported),
-          ),
-        )
-            : CircleAvatar(child: Text("${index+1}")),
-        title: Text(question['question'] ?? "", maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        subtitle: Text("Ans: ${question['answer']}", style: GoogleFonts.poppins(fontSize: 10.sp, color: Colors.green)),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blue),
-              onPressed: () => _showQuestionSheet(index: index, existingQuestion: question),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => setState(() => _questions.removeAt(index)),
-            ),
+            SizedBox(height: 10.h),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEmptyQuestionsState() => Center(child: Text("No questions added"));
+  // --- PRO WIDGETS ---
 
-  Widget _buildSaveButton(bool isLoading) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.w),
-      child: SizedBox(
-        width: double.infinity,
-        height: 7.h,
-        child: ElevatedButton(
-          onPressed: isLoading ? null : _saveChanges,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _primary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+  Widget _buildProLabel(String text) {
+    return Text(text, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w700, color: _textGrey, letterSpacing: 0.5));
+  }
+
+  Widget _buildProTextField({required TextEditingController controller, required String hint, required IconData icon, bool isNumber = false}) {
+    return TextField(
+      controller: controller,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w600),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400, fontSize: 15.sp),
+        prefixIcon: Icon(icon, size: 20.sp, color: _textGrey),
+        filled: true,
+        fillColor: _bg,
+        contentPadding: EdgeInsets.symmetric(vertical: 2.h),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _primary, width: 2)),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(6.w),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border, style: BorderStyle.solid),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.layers_clear_outlined, size: 32.sp, color: Colors.grey.shade300),
+          SizedBox(height: 1.h),
+          Text("No Levels Added", style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w700, color: _textGrey)),
+          Text("Create a learning path by adding levels.", style: GoogleFonts.poppins(fontSize: 14.sp, color: Colors.grey.shade400), textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+
+  // --- ULTRA PRO CARD ---
+  Widget _buildProLevelCard(int index, QuizLevelModel level) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 5))],
+        border: Border.all(color: _border),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+          leading: Container(
+            width: 13.w,
+            height: 13.w,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [Colors.blue.shade50, Colors.blue.shade100], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text("${level.order}", style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.w800, color: Colors.blue.shade800)),
+            ),
           ),
-          child: Text("SAVE CHANGES", style: GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.w900, color: Colors.white)),
+          title: Text(level.title, style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w700, color: _textDark)),
+          subtitle: Padding(
+            padding: EdgeInsets.only(top: 0.5.h),
+            child: Row(
+              children: [
+                _buildChip(Icons.star_rounded, "${level.points} pts", Colors.amber),
+                SizedBox(width: 2.w),
+                _buildChip(Icons.quiz_rounded, "${level.questions.length} Qs", Colors.purple),
+              ],
+            ),
+          ),
+          childrenPadding: EdgeInsets.fromLTRB(4.w, 0, 4.w, 2.h),
+          children: [
+            Divider(color: _border),
+            SizedBox(height: 1.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildChip(Icons.check_circle_outline, "Pass: ${level.passingPercentage}%", Colors.green),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => _showLevelEditor(existingLevel: level, index: index),
+                      icon: Icon(Icons.edit_rounded, size: 17.sp, color: _primary),
+                      label: Text("Edit", style: GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _primary)),
+                      style: TextButton.styleFrom(backgroundColor: _primary.withOpacity(0.1)),
+                    ),
+                    SizedBox(width: 2.w),
+                    IconButton(
+                      onPressed: () => setState(() => _levels.removeAt(index)),
+                      icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 19.sp),
+                      style: IconButton.styleFrom(backgroundColor: Colors.red.shade50),
+                    ),
+                  ],
+                )
+              ],
+            )
+          ],
         ),
       ),
     );
   }
 
-  Future<void> _saveChanges() async {
-    List<QuestionModel> questionModels = _questions.map((q) {
-      return QuestionModel(
-        question: q['question'],
-        options: List<String>.from(q['options']),
-        answer: q['answer'],
-        imageUrl: q['image_url'],
-      );
-    }).toList();
-
-    final String? finalImageUrlString = _coverImageFile?.path ?? _coverImageUrl;
-
-    QuizModel updatedQuiz = widget.quizData.copyWith(
-      category: _selectedCategory,
-      title: _titleController.text,
-      order: int.tryParse(_levelController.text) ?? 1,
-      passingPercentage: int.tryParse(_percentageController.text) ?? 60,
-      questions: questionModels,
-      imageUrl: finalImageUrlString,
+  Widget _buildChip(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 16.sp, color: color),
+        SizedBox(width: 1.w),
+        Text(text, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: _textGrey)),
+      ],
     );
-
-    await ref.read(quizViewModelProvider.notifier).updateQuiz(updatedQuiz);
-
-    if (!mounted) return;
-    Navigator.pop(context);
   }
 
-  // --- COMPLETE QUESTION SHEET LOGIC ---
-  void _showQuestionSheet({int? index, Map<String, dynamic>? existingQuestion}) {
-    // 1. Setup initial values
-    String qText = existingQuestion?['question'] ?? "";
-    List<dynamic> currentOpts = existingQuestion?['options'] ?? ["", "", "", ""];
-    String currentAnswer = existingQuestion?['answer'] ?? "";
-    String? qImageUrl = existingQuestion?['image_url'];
+  // ==========================================
+  // LEVEL EDITOR MODAL (With Pass % & Edit Question Logic)
+  // ==========================================
+  void _showLevelEditor({QuizLevelModel? existingLevel, int? index}) {
+    final titleCtrl = TextEditingController(text: existingLevel?.title ?? "");
+    final orderCtrl = TextEditingController(text: existingLevel?.order.toString() ?? "${_levels.length + 1}");
+    final pointsCtrl = TextEditingController(text: existingLevel?.points.toString() ?? "10");
+    final passCtrl = TextEditingController(text: existingLevel?.passingPercentage.toString() ?? "60");
 
-    // 2. Controllers
-    TextEditingController op1Ctrl = TextEditingController(text: currentOpts.length > 0 ? currentOpts[0] : "");
-    TextEditingController op2Ctrl = TextEditingController(text: currentOpts.length > 1 ? currentOpts[1] : "");
-    TextEditingController op3Ctrl = TextEditingController(text: currentOpts.length > 2 ? currentOpts[2] : "");
-    TextEditingController op4Ctrl = TextEditingController(text: currentOpts.length > 3 ? currentOpts[3] : "");
-
-    // 3. Determine correct index (if editing)
-    int selectedOptionIndex = -1;
-    if (currentAnswer.isNotEmpty) {
-      // Check which option matches the answer string
-      if (op1Ctrl.text == currentAnswer) selectedOptionIndex = 0;
-      else if (op2Ctrl.text == currentAnswer) selectedOptionIndex = 1;
-      else if (op3Ctrl.text == currentAnswer) selectedOptionIndex = 2;
-      else if (op4Ctrl.text == currentAnswer) selectedOptionIndex = 3;
-    }
-
-    // 4. Local Image File (for picking new one)
-    File? newImageFile;
+    List<QuestionModel> tempQuestions = existingLevel != null ? List.from(existingLevel.questions) : [];
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-          builder: (context, setSheetState) {
-            return DraggableScrollableSheet(
-                initialChildSize: 0.9,
-                minChildSize: 0.5,
-                maxChildSize: 0.95,
-                builder: (_, controller) {
-                  return Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(topLeft: Radius.circular(25), topRight: Radius.circular(25)),
-                    ),
-                    padding: EdgeInsets.fromLTRB(5.w, 2.h, 5.w, MediaQuery.of(context).viewInsets.bottom + 2.h),
-                    child: ListView(
-                      controller: controller,
-                      children: [
-                        Center(child: Container(width: 15.w, height: 0.6.h, decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)))),
-                        SizedBox(height: 3.h),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: 92.h,
+            decoration: BoxDecoration(
+              color: _surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+            ),
+            child: Column(
+              children: [
+                Container(margin: EdgeInsets.only(top: 2.h), width: 15.w, height: 5, decoration: BoxDecoration(color: _border, borderRadius: BorderRadius.circular(10))),
+                Padding(
+                  padding: EdgeInsets.all(5.w),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(existingLevel == null ? "Add Level" : "Edit Level", style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.w800, color: _textDark)),
+                      IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close, color: _textGrey, size: 22.sp)),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, color: _border),
 
-                        Text(index == null ? "Add Question" : "Edit Question", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w800, color: _textDark)),
-                        SizedBox(height: 3.h),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+                    children: [
+                      _buildProLabel("Level Configuration"),
+                      SizedBox(height: 1.5.h),
+                      _buildProTextField(controller: titleCtrl, hint: "e.g. Intro to Jungle", icon: Icons.text_fields_rounded),
+                      SizedBox(height: 2.h),
 
-                        // Question Input
-                        Text("QUESTION TEXT", style: GoogleFonts.poppins(fontSize: 9.sp, fontWeight: FontWeight.w900, color: _textLabel, letterSpacing: 0.8)),
-                        SizedBox(height: 1.h),
-                        TextField(
-                          onChanged: (v) => qText = v,
-                          controller: TextEditingController(text: qText)..selection = TextSelection.fromPosition(TextPosition(offset: qText.length)),
-                          maxLines: 2,
-                          style: GoogleFonts.poppins(fontSize: 12.sp, color: _textDark, fontWeight: FontWeight.w600),
-                          decoration: InputDecoration(
-                            hintText: "Enter question...",
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
-                        SizedBox(height: 2.h),
+                      Row(
+                        children: [
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildProLabel("Order"), SizedBox(height: 1.h), _buildProTextField(controller: orderCtrl, hint: "1", icon: Icons.format_list_numbered_rounded, isNumber: true)])),
+                          SizedBox(width: 3.w),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildProLabel("Points"), SizedBox(height: 1.h), _buildProTextField(controller: pointsCtrl, hint: "10", icon: Icons.star_border_rounded, isNumber: true)])),
+                        ],
+                      ),
+                      SizedBox(height: 2.h),
+                      _buildProLabel("Passing Percentage"),
+                      SizedBox(height: 1.h),
+                      _buildProTextField(controller: passCtrl, hint: "60", icon: Icons.percent_rounded, isNumber: true),
 
-                        // Image Picker
-                        Text("IMAGE (OPTIONAL)", style: GoogleFonts.poppins(fontSize: 9.sp, fontWeight: FontWeight.w900, color: _textLabel, letterSpacing: 0.8)),
-                        SizedBox(height: 1.h),
-                        InkWell(
-                          onTap: () async {
-                            final ImagePicker picker = ImagePicker();
-                            final XFile? picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-                            if (picked != null) {
-                              setSheetState(() {
-                                newImageFile = File(picked.path);
-                              });
-                            }
-                          },
-                          child: Container(
-                            height: 12.h,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: _border, width: 1.5),
-                              image: newImageFile != null
-                                  ? DecorationImage(image: FileImage(newImageFile!), fit: BoxFit.cover)
-                                  : (qImageUrl != null && newImageFile == null
-                                  ? DecorationImage(image: NetworkImage(qImageUrl!), fit: BoxFit.cover)
-                                  : null),
-                            ),
-                            child: (newImageFile == null && qImageUrl == null)
-                                ? Center(child: Text("Tap to attach image", style: GoogleFonts.poppins(color: Colors.grey[600], fontWeight: FontWeight.w600)))
-                                : Align(
-                              alignment: Alignment.topRight,
-                              child: InkWell(
-                                onTap: () => setSheetState(() {
-                                  newImageFile = null;
-                                  qImageUrl = null;
-                                }),
-                                child: Container(
-                                  margin: EdgeInsets.all(2.w),
-                                  padding: EdgeInsets.all(1.w),
-                                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                                  child: Icon(Icons.close, color: Colors.red, size: 16.sp),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 3.h),
+                      SizedBox(height: 4.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Questions (${tempQuestions.length})", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: _textDark)),
+                          TextButton.icon(
+                            onPressed: () => _showQuestionEditor(context, (newQ) => setModalState(() => tempQuestions.add(newQ))),
+                            icon: Icon(Icons.add, size: 18.sp),
+                            label: Text("Add Question", style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                            style: TextButton.styleFrom(foregroundColor: _primary),
+                          )
+                        ],
+                      ),
+                      SizedBox(height: 1.h),
 
-                        // Options
-                        Text("OPTIONS (SELECT CORRECT ANSWER)", style: GoogleFonts.poppins(fontSize: 9.sp, fontWeight: FontWeight.w900, color: _textLabel, letterSpacing: 0.8)),
-                        SizedBox(height: 1.h),
-
-                        _buildOptionInput(0, "Option A", op1Ctrl, selectedOptionIndex, (idx) => setSheetState(() => selectedOptionIndex = idx)),
-                        _buildOptionInput(1, "Option B", op2Ctrl, selectedOptionIndex, (idx) => setSheetState(() => selectedOptionIndex = idx)),
-                        _buildOptionInput(2, "Option C", op3Ctrl, selectedOptionIndex, (idx) => setSheetState(() => selectedOptionIndex = idx)),
-                        _buildOptionInput(3, "Option D", op4Ctrl, selectedOptionIndex, (idx) => setSheetState(() => selectedOptionIndex = idx)),
-
-                        SizedBox(height: 4.h),
-
-                        // Action Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 7.h,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // Validation
-                              if (qText.isNotEmpty && selectedOptionIndex != -1) {
-                                // Grab values
-                                List<String> options = [op1Ctrl.text, op2Ctrl.text, op3Ctrl.text, op4Ctrl.text];
-                                String correctAns = options[selectedOptionIndex];
-                                String? finalImg = newImageFile?.path ?? qImageUrl;
-
-                                // Create Map
-                                Map<String, dynamic> questionData = {
-                                  'question': qText,
-                                  'options': options,
-                                  'answer': correctAns,
-                                  'image_url': finalImg,
-                                };
-
-                                setState(() {
-                                  if (index != null) {
-                                    // UPDATE existing
-                                    _questions[index] = questionData;
-                                  } else {
-                                    // ADD new
-                                    _questions.add(questionData);
-                                  }
-                                });
-                                Navigator.pop(context);
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter text and select an answer")));
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(backgroundColor: _primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                            child: Text(index == null ? "ADD QUESTION" : "UPDATE QUESTION", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w900)),
-                          ),
+                      if (tempQuestions.isEmpty)
+                        Container(
+                          padding: EdgeInsets.all(3.h),
+                          decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)),
+                          child: Center(child: Text("No questions added yet", style: GoogleFonts.poppins(fontSize: 14.sp, color: _textGrey))),
                         )
-                      ],
+                      else
+                        ...tempQuestions.asMap().entries.map((e) => Container(
+                          margin: EdgeInsets.only(bottom: 1.5.h),
+                          decoration: BoxDecoration(color: _surface, border: Border.all(color: _border), borderRadius: BorderRadius.circular(12)),
+                          child: ListTile(
+                            dense: true,
+                            title: Text("Q${e.key+1}: ${e.value.question}", maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: _textDark)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // --- EDIT BUTTON ADDED HERE ---
+                                IconButton(
+                                  icon: Icon(Icons.edit, color: _primary, size: 20.sp),
+                                  onPressed: () {
+                                    _showQuestionEditor(
+                                      context,
+                                          (updatedQ) {
+                                        setModalState(() {
+                                          tempQuestions[e.key] = updatedQ;
+                                        });
+                                      },
+                                      existingQuestion: e.value, // Pass existing data
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete_outline, color: Colors.red.shade300, size: 20.sp),
+                                  onPressed: () => setModalState(() => tempQuestions.removeAt(e.key)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )).toList(),
+                      SizedBox(height: 10.h),
+                    ],
+                  ),
+                ),
+
+                Container(
+                  padding: EdgeInsets.all(5.w),
+                  decoration: BoxDecoration(color: _surface, border: Border(top: BorderSide(color: _border))),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 7.h,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (titleCtrl.text.isEmpty) return;
+                        final newLevel = QuizLevelModel(
+                          title: titleCtrl.text,
+                          order: int.tryParse(orderCtrl.text) ?? 1,
+                          passingPercentage: int.tryParse(passCtrl.text) ?? 60,
+                          points: int.tryParse(pointsCtrl.text) ?? 10,
+                          questions: tempQuestions,
+                        );
+
+                        setState(() {
+                          if (index != null) _levels[index] = newLevel;
+                          else _levels.add(newLevel);
+                          _levels.sort((a, b) => a.order.compareTo(b.order));
+                        });
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: _textDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                      child: Text(index == null ? "ADD LEVEL" : "UPDATE LEVEL", style: GoogleFonts.poppins(color: Colors.white, fontSize: 15.sp, fontWeight: FontWeight.w700)),
                     ),
-                  );
-                }
-            );
-          }
+                  ),
+                )
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildOptionInput(int index, String label, TextEditingController controller, int selectedIndex, Function(int) onSelect) {
-    bool isSelected = selectedIndex == index;
-    return Container(
-      margin: EdgeInsets.only(bottom: 1.5.h),
-      padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
-      decoration: BoxDecoration(
-        border: Border.all(color: isSelected ? _primary : _border, width: isSelected ? 2.5 : 1.5),
-        borderRadius: BorderRadius.circular(8),
-        color: isSelected ? _primary.withOpacity(0.08) : Colors.white,
-      ),
-      child: Row(
-        children: [
-          Radio<int>(
-            value: index,
-            groupValue: selectedIndex,
-            activeColor: _primary,
-            onChanged: (val) => onSelect(val!),
+  // --- QUESTION EDITOR (Handles Add & Edit) ---
+  void _showQuestionEditor(BuildContext ctx, Function(QuestionModel) onSave, {QuestionModel? existingQuestion}) {
+    final qTextController = TextEditingController(text: existingQuestion?.question ?? "");
+    final op1 = TextEditingController(text: existingQuestion?.options.isNotEmpty == true ? existingQuestion!.options[0] : "");
+    final op2 = TextEditingController(text: existingQuestion?.options.length == 4 ? existingQuestion!.options[1] : "");
+    final op3 = TextEditingController(text: existingQuestion?.options.length == 4 ? existingQuestion!.options[2] : "");
+    final op4 = TextEditingController(text: existingQuestion?.options.length == 4 ? existingQuestion!.options[3] : "");
+
+    int correctIdx = 0;
+    if (existingQuestion != null) {
+      int foundIdx = existingQuestion.options.indexOf(existingQuestion.answer);
+      if (foundIdx != -1) correctIdx = foundIdx;
+    }
+
+    showDialog(context: ctx, builder: (context) => StatefulBuilder(
+      builder: (context, setState) => Dialog(
+        backgroundColor: _surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: EdgeInsets.all(5.w),
+          height: 75.h,
+          child: Column(
+            children: [
+              Text(existingQuestion == null ? "New Question" : "Edit Question", style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.bold)),
+              SizedBox(height: 3.h),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildProTextField(controller: qTextController, hint: "Question Text", icon: Icons.help_outline),
+                      SizedBox(height: 2.h),
+                      ...List.generate(4, (i) => Padding(
+                        padding: EdgeInsets.only(bottom: 1.h),
+                        child: Row(
+                          children: [
+                            Radio(value: i, groupValue: correctIdx, onChanged: (v) => setState(() => correctIdx = v!), activeColor: _primary),
+                            Expanded(child: TextField(controller: [op1, op2, op3, op4][i], style: TextStyle(fontSize: 14.sp), decoration: InputDecoration(hintText: "Option ${i+1}", filled: true, fillColor: _bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))))),
+                          ],
+                        ),
+                      ))
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 2.h),
+              SizedBox(
+                width: double.infinity,
+                height: 6.5.h,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (qTextController.text.isNotEmpty) {
+                      onSave(QuestionModel(
+                        question: qTextController.text,
+                        options: [op1.text, op2.text, op3.text, op4.text],
+                        answer: [op1.text, op2.text, op3.text, op4.text][correctIdx],
+                        imageUrl: existingQuestion?.imageUrl,
+                      ));
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: _primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: Text("SAVE", style: GoogleFonts.poppins(color: Colors.white, fontSize: 15.sp, fontWeight: FontWeight.bold)),
+                ),
+              )
+            ],
           ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              style: GoogleFonts.poppins(fontSize: 12.sp, color: _textDark, fontWeight: FontWeight.w600),
-              decoration: InputDecoration(hintText: label, border: InputBorder.none),
-            ),
-          ),
-        ],
+        ),
       ),
-    );
+    ));
   }
 }

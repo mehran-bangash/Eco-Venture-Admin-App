@@ -30,11 +30,6 @@ class _AdminChildHomeState extends State<AdminChildHome> {
       "colors": [Color(0xFF42A5F5), Color(0xFF64B5F6)],
     },
     {
-      "title": "Nature Photo Journal",
-      "subtitle": "Visual documentation",
-      "colors": [Color(0xFF7E57C2), Color(0xFF9575CD)],
-    },
-    {
       "title": "QR Treasure Hunt",
       "subtitle": "Interactive exploration",
       "colors": [Color(0xFFFFA726), Color(0xFFFFB74D)],
@@ -169,15 +164,10 @@ class _AdminChildHomeState extends State<AdminChildHome> {
                               break;
 
                             case "Multimedia Learning":
-                              context.goNamed('multiMediaContent');
+                              context.goNamed('adminMultimediaDashboard');
                               break;
-
-                            case "Nature photo journal":
-                              // context.goNamed("naturePhotoJournal");
-                              break;
-
                             case "QR Treasure Hunt":
-                              // context.goNamed("qrTreasureHunt");
+                              context.goNamed('adminTreasureHuntDashboard');
                               break;
 
                             case "STEM Challenges":

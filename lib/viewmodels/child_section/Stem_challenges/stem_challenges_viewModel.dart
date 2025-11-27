@@ -5,6 +5,7 @@ import '../../../repositories/cloudinary_repository.dart';
 import '../../../repositories/stem_challenges_repository.dart';
 import 'stem_challenges_state.dart';
 
+
 class StemChallengesViewModel extends StateNotifier<StemChallengesState> {
   final StemChallengesRepository _repository;
   final CloudinaryRepository _cloudinaryRepository;
@@ -16,19 +17,19 @@ class StemChallengesViewModel extends StateNotifier<StemChallengesState> {
   Future<StemChallengeModel> _processImage(StemChallengeModel challenge) async {
     String? finalImageUrl = challenge.imageUrl;
 
-    // Check if imageUrl exists AND is a local file path (not an HTTP link)
-    if (challenge.imageUrl != null && !challenge.imageUrl!.startsWith('http')) {
-      final file = File(challenge.imageUrl!);
+    // Check if imageUrl exists and is a local file path
+    if (finalImageUrl != null && !finalImageUrl.startsWith('http')) {
+      final file = File(finalImageUrl);
       if (file.existsSync()) {
+        // Upload using the specific STEM preset via Repository
         finalImageUrl = await _cloudinaryRepository.uploadStemImage(
           file,
-          challenge.category, // Organize folder by category
         );
         if (finalImageUrl == null) {
           throw Exception("Failed to upload Challenge Image.");
         }
       } else {
-        finalImageUrl = null; // File missing, clear it
+        finalImageUrl = null; // File missing
       }
     }
 
@@ -38,7 +39,7 @@ class StemChallengesViewModel extends StateNotifier<StemChallengesState> {
 
   // --- ACTIONS ---
 
-  // 1. ADD
+  // 1. Add Challenge
   Future<void> addChallenge(StemChallengeModel challenge) async {
     state = state.copyWith(isLoading: true);
     try {
@@ -54,7 +55,7 @@ class StemChallengesViewModel extends StateNotifier<StemChallengesState> {
     }
   }
 
-  // 2. UPDATE
+  // 2. Update Challenge
   Future<void> updateChallenge(StemChallengeModel challenge) async {
     state = state.copyWith(isLoading: true);
     try {
@@ -70,17 +71,16 @@ class StemChallengesViewModel extends StateNotifier<StemChallengesState> {
     }
   }
 
-  // 3. DELETE
+  // 3. Delete Challenge
   Future<void> deleteChallenge(String challengeId, String category) async {
     try {
       await _repository.deleteChallenge(challengeId, category);
-      // No loading state needed for delete usually, creates smoother UI
     } catch (e) {
       state = state.copyWith(errorMessage: "Delete failed: ${e.toString()}");
     }
   }
 
-  // Reset success flag after UI handles it (e.g. showing Snackbar)
+  // Reset success flag after UI handles it
   void resetSuccess() {
     state = state.copyWith(isSuccess: false);
   }

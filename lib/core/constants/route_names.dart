@@ -29,23 +29,31 @@ class RouteNames {
   static const childSettings = '/child/settings';
 
   // nested inside child Section multiMediaContent
-  static const videoScreen = '/child/multimedia-content/video-screen';
-  static const addVideoScreen = '/child/multimedia-content/video-screen/add';
-  static const viewAllVideosScreen = '/child/multimedia-content/video-screen/view-all';
-  static const storyScreen = '/child/multimedia-content/story-screen';
-  static const addStoryScreen = '/child/multimedia-content/story-screen/add';
-  static const viewAllStoriesScreen = '/child/multimedia-content/story-screen/view-all';
-  static const storyDetailScreen = '/child/multimedia-content/story-screen/view-all/detail';
-  static const editStoryScreen = '/child/multimedia-content/story-screen/view-all/edit';
+   static const adminMultimediaDashboard='/child/admin-multimedia-dashboard';
+   static const adminVideoDashboard='/child/admin-multimedia-dashboard/video-dashboard';
+   static const adminAddVideoScreen='/child/admin-multimedia-dashboard/video-dashboard/add';
+   static const adminEditVideoScreen='/child/admin-multimedia-dashboard/video-dashboard/edit';
+   static const adminStoryDashboard='/child/admin-multimedia-dashboard/story-dashboard';
+   static const adminAddStoryScreen='/child/admin-multimedia-dashboard/story-dashboard/add';
+   static const adminEditStoryScreen='/child/admin-multimedia-dashboard/story-dashboard/edit';
+
+
+
 
   // interactive quiz
   static const interactiveQuiz = '/child/interactive-quiz';
   static const addQuizScreen = '/child/interactive-quiz/add';
   static const editQuizScreen= '/child/interactive-quiz/edit';
+  static const quizTopicDetailScreen='/child/interactive-quiz/detail';
 
   // STEM challenges
   static const stemChallengesScreen = '/child/stem-challenges-screen';
   static const addStemChallengesScreen='/child/stem-challenges-screen/add-stem-challenges-screen';
   static const editStemChallengeScreen='/child/stem-challenges-screen/edit-stem-challenges-screen';
+
+  //Qr Treasure Hunt Screen
+  static const adminTreasureHuntDashboard='/child/admin-treasure-hunt';
+  static const adminAddTreasureHuntScreen='/child/admin-treasure-hunt/add';
+  static const adminEditTreasureHuntScreen='/child/admin-treasure-hunt/edit';
 
 }
