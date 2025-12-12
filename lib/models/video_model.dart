@@ -9,6 +9,10 @@ class VideoModel {
   final String duration;
   final DateTime createdAt;
 
+  // --- NEW FIELDS ---
+  final List<String> tags;
+  final bool isSensitive;
+
   VideoModel({
     this.id,
     this.adminId,
@@ -19,6 +23,9 @@ class VideoModel {
     this.thumbnailUrl,
     required this.duration,
     required this.createdAt,
+    // --- Initialize New Fields ---
+    this.tags = const [],
+    this.isSensitive = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -32,6 +39,9 @@ class VideoModel {
       'thumbnailUrl': thumbnailUrl,
       'duration': duration,
       'createdAt': createdAt.toIso8601String(),
+      // --- Serialize New Fields ---
+      'tags': tags,
+      'isSensitive': isSensitive,
     };
   }
 
@@ -46,6 +56,9 @@ class VideoModel {
       thumbnailUrl: map['thumbnailUrl'],
       duration: map['duration'] ?? '00:00',
       createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
+      // --- Deserialize New Fields ---
+      tags: List<String>.from(map['tags'] ?? []),
+      isSensitive: map['isSensitive'] ?? false,
     );
   }
 
@@ -59,6 +72,9 @@ class VideoModel {
     String? thumbnailUrl,
     String? duration,
     DateTime? createdAt,
+    // --- New Fields in CopyWith ---
+    List<String>? tags,
+    bool? isSensitive,
   }) {
     return VideoModel(
       id: id ?? this.id,
@@ -70,6 +86,9 @@ class VideoModel {
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       duration: duration ?? this.duration,
       createdAt: createdAt ?? this.createdAt,
+      // --- Assign New Fields ---
+      tags: tags ?? this.tags,
+      isSensitive: isSensitive ?? this.isSensitive,
     );
   }
 }

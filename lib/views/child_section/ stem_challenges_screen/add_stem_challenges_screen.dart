@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:ui'; // REQUIRED for PathMetrics and PathMetric
 import 'dart:io';
+import 'package:eco_venture_admin_portal/core/config/api_constant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. Import Riverpod
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
@@ -11,7 +14,6 @@ import '../../../models/stem_challenge_model.dart';
 import '../../../viewmodels/child_section/Stem_challenges/stem_challenges_provider.dart';
 
 
-// 2. Change to ConsumerStatefulWidget
 class AddStemChallengeScreen extends ConsumerStatefulWidget {
   const AddStemChallengeScreen({super.key});
 
@@ -32,6 +34,11 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
   final TextEditingController _pointsController = TextEditingController(text: "50");
   final TextEditingController _materialController = TextEditingController();
 
+  // --- NEW FIELDS ---
+  final TextEditingController _tagsController = TextEditingController();
+  bool _isSensitive = false;
+  // -----------------
+
   String _selectedCategory = 'Science';
   final List<String> _categories = ['Science', 'Technology', 'Engineering', 'Mathematics'];
 
@@ -47,7 +54,34 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
     _titleController.dispose();
     _pointsController.dispose();
     _materialController.dispose();
+    _tagsController.dispose(); // Dispose tags controller
     super.dispose();
+  }
+
+  // --- NOTIFICATION LOGIC ---
+  Future<void> _sendNotificationToUsers(String title, String category) async {
+    const String backendUrl = ApiConstants.notifyByRoleEndPoints; // Use correct IP
+
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "title": "New STEM Challenge! 🧪",
+          "body": "Try the '$title' challenge in $category!",
+          "type": "STEM",
+          "targetRole": "child" // Notify children only
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Notification sent successfully");
+      } else {
+        print("❌ Notification failed: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Error calling backend: $e");
+    }
   }
 
   // --- SAVE LOGIC ---
@@ -64,36 +98,54 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
 
     final points = int.tryParse(_pointsController.text.trim()) ?? 0;
 
-    // Create Model (Pass local image path if it exists)
+    // --- 1. Process Tags & Sensitivity ---
+    List<String> tagsList = _tagsController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    // Auto-tag logic
+    if (_isSensitive && !tagsList.contains('scary')) {
+      tagsList.add('scary');
+    }
+    if (!_isSensitive) {
+      tagsList.remove('scary');
+    }
+
+    // Create Model
     final newChallenge = StemChallengeModel(
       title: _titleController.text.trim(),
       category: _selectedCategory,
       difficulty: _selectedDifficulty,
       points: points,
-      // The ViewModel handles uploading this local path
       imageUrl: _challengeImage?.path,
       materials: _materials,
       steps: _steps,
+      // --- Pass New Fields ---
+      tags: tagsList,
+      isSensitive: _isSensitive,
     );
 
     // Call ViewModel to start upload process
     await ref.read(stemChallengesViewModelProvider.notifier).addChallenge(newChallenge);
+
+    // --- Trigger Notification (If not sensitive) ---
+    if (!_isSensitive) {
+      _sendNotificationToUsers(newChallenge.title, newChallenge.category);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 3. Watch ViewModel State for Loading/Success/Error
     final viewModelState = ref.watch(stemChallengesViewModelProvider);
 
-    // 4. Listen for Side Effects (Navigation/Snack bars)
     ref.listen(stemChallengesViewModelProvider, (previous, next) {
       if (next.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$_selectedCategory Challenge Saved Successfully!'), backgroundColor: Colors.green),
+          SnackBar(content: Text('$_selectedCategory Challenge Saved!'), backgroundColor: Colors.green),
         );
-        // Reset success state so it doesn't trigger again
         ref.read(stemChallengesViewModelProvider.notifier).resetSuccess();
-        // Go back to the main list
         Navigator.pop(context);
       } else if (next.errorMessage != null && !next.isLoading) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -131,6 +183,41 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
                   _buildDifficultySelector(),
                   SizedBox(height: 2.h),
 
+                  // --- NEW UI ELEMENTS ---
+                  _buildLabel("Tags (comma-separated)"),
+                  _buildTextField(
+                    controller: _tagsController,
+                    hint: "e.g. physics, water, fun",
+                  ),
+                  SizedBox(height: 2.h),
+
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _borderGrey),
+                    ),
+                    child: SwitchListTile(
+                      activeColor: Colors.red,
+                      title: Text(
+                        "Sensitive Content",
+                        style: GoogleFonts.poppins(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.red.shade700
+                        ),
+                      ),
+                      subtitle: Text(
+                        "Hide from younger children",
+                        style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey),
+                      ),
+                      value: _isSensitive,
+                      onChanged: (val) => setState(() => _isSensitive = val),
+                    ),
+                  ),
+                  // -----------------------
+                  SizedBox(height: 2.h),
+
                   _buildLabel("Points"),
                   SizedBox(
                     width: 30.w,
@@ -165,7 +252,6 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
                 ],
               ),
             ),
-            // Loading Overlay
             if (viewModelState.isLoading)
               Container(
                 color: Colors.black.withOpacity(0.3),
@@ -177,7 +263,7 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
     );
   }
 
-  // --- WIDGET BUILDERS ---
+  // --- WIDGET BUILDERS (Same as before) ---
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
@@ -195,7 +281,6 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
             style: GoogleFonts.poppins(color: _textDark, fontSize: 17.sp, fontWeight: FontWeight.w700),
           ),
           SizedBox(height: 0.5.h),
-          // Category Badge
           Container(
             padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.5.h),
             decoration: BoxDecoration(
@@ -313,7 +398,6 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
         child: InkWell(
           onTap: () async {
             final ImagePicker picker = ImagePicker();
-            // Added imageQuality to reduce file size for faster uploads
             final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
             if (image != null) setState(() => _challengeImage = File(image.path));
           },
@@ -347,7 +431,6 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
     );
   }
 
-  // --- MATERIALS SECTION ---
   Widget _buildMaterialsWrap() {
     return Wrap(
       spacing: 2.w,
@@ -378,7 +461,6 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
     );
   }
 
-  // --- STEPS SECTION ---
   Widget _buildStepsList() {
     return ListView.separated(
       shrinkWrap: true,
@@ -396,7 +478,6 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Step Number Circle
               CircleAvatar(
                 radius: 12,
                 backgroundColor: _primaryBlue,
@@ -406,14 +487,12 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
                 ),
               ),
               SizedBox(width: 3.w),
-              // Step Text
               Expanded(
                 child: Text(
                   _steps[index],
                   style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w500, color: _textDark),
                 ),
               ),
-              // Delete Icon
               InkWell(
                 onTap: () => setState(() => _steps.removeAt(index)),
                 child: Icon(Icons.delete_outline, size: 16.sp, color: Colors.grey.shade600),
@@ -425,7 +504,6 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
     );
   }
 
-  // --- REUSABLE DASHED BUTTON (Add Material / Add Step) ---
   Widget _buildDashedAddButton({required String label, required VoidCallback onTap}) {
     return CustomPaint(
       painter: DashedRectPainter(color: _dashedBorderColor, strokeWidth: 1.5, gap: 5, radius: 10),
@@ -455,19 +533,16 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
   Widget _buildFooterButtons(bool isLoading) {
     return Column(
       children: [
-        // Save Challenge (Blue)
         SizedBox(
           width: double.infinity,
           height: 6.5.h,
           child: ElevatedButton(
-            // Disable button while loading
             onPressed: isLoading ? null : _saveChallenge,
             style: ElevatedButton.styleFrom(
               backgroundColor: _primaryBlue,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               elevation: 0,
             ),
-            // Show loader if loading, else show text
             child: isLoading
                 ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : Text(
@@ -477,8 +552,6 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
           ),
         ),
         SizedBox(height: 1.5.h),
-
-        // Cancel Text
         TextButton(
           onPressed: isLoading ? null : () => Navigator.pop(context),
           child: Text(
@@ -490,7 +563,6 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
     );
   }
 
-  // --- DIALOGS ---
   void _showAddMaterialDialog() {
     _materialController.clear();
     showDialog(
@@ -547,7 +619,6 @@ class _AddStemChallengeScreenState extends ConsumerState<AddStemChallengeScreen>
   }
 }
 
-// --- CUSTOM PAINTER (Updated with Radius Support) ---
 class DashedRectPainter extends CustomPainter {
   final double strokeWidth;
   final Color color;

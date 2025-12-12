@@ -7,6 +7,10 @@ class QrHuntModel {
   final List<String> clues;
   final DateTime createdAt;
 
+  // --- NEW FIELDS ---
+  final List<String> tags;
+  final bool isSensitive;
+
   QrHuntModel({
     this.id,
     this.adminId,
@@ -15,6 +19,9 @@ class QrHuntModel {
     required this.difficulty,
     required this.clues,
     required this.createdAt,
+    // --- Initialize New Fields ---
+    this.tags = const [],
+    this.isSensitive = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +33,9 @@ class QrHuntModel {
       'difficulty': difficulty,
       'clues': clues,
       'createdAt': createdAt.toIso8601String(),
+      // --- Serialize New Fields ---
+      'tags': tags,
+      'isSensitive': isSensitive,
     };
   }
 
@@ -38,6 +48,9 @@ class QrHuntModel {
       difficulty: map['difficulty'] ?? 'Easy',
       clues: List<String>.from(map['clues'] ?? []),
       createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
+      // --- Deserialize New Fields ---
+      tags: List<String>.from(map['tags'] ?? []),
+      isSensitive: map['isSensitive'] ?? false,
     );
   }
 
@@ -49,6 +62,9 @@ class QrHuntModel {
     String? difficulty,
     List<String>? clues,
     DateTime? createdAt,
+    // --- New Fields in CopyWith ---
+    List<String>? tags,
+    bool? isSensitive,
   }) {
     return QrHuntModel(
       id: id ?? this.id,
@@ -58,6 +74,9 @@ class QrHuntModel {
       difficulty: difficulty ?? this.difficulty,
       clues: clues ?? this.clues,
       createdAt: createdAt ?? this.createdAt,
+      // --- Assign New Fields ---
+      tags: tags ?? this.tags,
+      isSensitive: isSensitive ?? this.isSensitive,
     );
   }
 }

@@ -1,13 +1,18 @@
-import 'dart:ui';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
+import 'package:eco_venture_admin_portal/core/config/api_constant.dart';
+import 'package:http/http.dart' as http; // Add HTTP import
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../models/stem_challenge_model.dart';
+// Import your models and providers
+import '../../../../models/stem_challenge_model.dart';
+
 import '../../../viewmodels/child_section/Stem_challenges/stem_challenges_provider.dart';
 
 class EditStemChallengeScreen extends ConsumerStatefulWidget {
@@ -31,6 +36,11 @@ class _EditStemChallengeScreenState
   late TextEditingController _titleController;
   late TextEditingController _pointsController;
   final TextEditingController _materialController = TextEditingController();
+
+  // --- NEW CONTROLLERS ---
+  late TextEditingController _tagsController;
+  late bool _isSensitive;
+  // -----------------------
 
   late String _selectedCategory;
   final List<String> _categories = [
@@ -58,6 +68,13 @@ class _EditStemChallengeScreenState
       text: widget.challenge.points.toString(),
     );
 
+    // --- NEW: Initialize Tags & Sensitivity ---
+    _tagsController = TextEditingController(
+      text: widget.challenge.tags.join(', '),
+    );
+    _isSensitive = widget.challenge.isSensitive;
+    // ------------------------------------------
+
     _selectedCategory = widget.challenge.category;
     _selectedDifficulty = widget.challenge.difficulty;
 
@@ -73,7 +90,32 @@ class _EditStemChallengeScreenState
     _titleController.dispose();
     _pointsController.dispose();
     _materialController.dispose();
+    _tagsController.dispose(); // Dispose tags controller
     super.dispose();
+  }
+
+  // --- NOTIFICATION LOGIC ---
+  Future<void> _sendNotificationToUsers(String title, String category) async {
+    const String backendUrl = ApiConstants.notifyByRoleEndPoints;// Use correct IP
+
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "title": "STEM Challenge Updated! 🔄",
+          "body": "Check out the updates to '$title' in $category!",
+          "type": "STEM",
+          "targetRole": "child" // Notify children only
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Notification sent successfully");
+      }
+    } catch (e) {
+      print("❌ Error calling backend: $e");
+    }
   }
 
   Future<void> _updateChallenge() async {
@@ -92,6 +134,20 @@ class _EditStemChallengeScreenState
 
     final String? finalImage = _newImageFile?.path ?? _existingImageUrl;
 
+    // --- 1. Process Tags & Sensitivity ---
+    List<String> tagsList = _tagsController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    if (_isSensitive && !tagsList.contains('scary')) {
+      tagsList.add('scary');
+    }
+    if (!_isSensitive) {
+      tagsList.remove('scary');
+    }
+
     // 2. Use Model's copyWith (keeping ID and AdminID safe)
     final updatedModel = widget.challenge.copyWith(
       title: _titleController.text.trim(),
@@ -101,11 +157,19 @@ class _EditStemChallengeScreenState
       imageUrl: finalImage,
       materials: _materials,
       steps: _steps,
+      // --- Update New Fields ---
+      tags: tagsList,
+      isSensitive: _isSensitive,
     );
 
     await ref
         .read(stemChallengesViewModelProvider.notifier)
         .updateChallenge(updatedModel);
+
+    // --- Trigger Notification (If not sensitive) ---
+    if (!_isSensitive) {
+      _sendNotificationToUsers(updatedModel.title, updatedModel.category);
+    }
   }
 
   @override
@@ -159,9 +223,46 @@ class _EditStemChallengeScreenState
                     hint: "Enter challenge title",
                   ),
                   SizedBox(height: 2.h),
+
                   _buildLabel("Difficulty Level"),
                   _buildDifficultySelector(),
                   SizedBox(height: 2.h),
+
+                  // --- NEW UI ELEMENTS ---
+                  _buildLabel("Tags (comma-separated)"),
+                  _buildTextField(
+                    controller: _tagsController,
+                    hint: "e.g. physics, water, fun",
+                  ),
+                  SizedBox(height: 2.h),
+
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _borderGrey),
+                    ),
+                    child: SwitchListTile(
+                      activeColor: Colors.red,
+                      title: Text(
+                        "Sensitive Content",
+                        style: GoogleFonts.poppins(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.red.shade700
+                        ),
+                      ),
+                      subtitle: Text(
+                        "Hide from younger children",
+                        style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey),
+                      ),
+                      value: _isSensitive,
+                      onChanged: (val) => setState(() => _isSensitive = val),
+                    ),
+                  ),
+                  // -----------------------
+                  SizedBox(height: 2.h),
+
                   _buildLabel("Points"),
                   SizedBox(
                     width: 30.w,
@@ -210,7 +311,12 @@ class _EditStemChallengeScreenState
     );
   }
 
-  // ... [Keep Widget Builders (AppBar, Headers, TextFields, etc.) unchanged] ...
+  // ... [KEEP ALL EXISTING WIDGET BUILDERS UNCHANGED] ...
+  // Same as your original code:
+  // _buildAppBar, _buildSectionHeader, _buildLabel, _buildTextField,
+  // _buildDifficultySelector, _buildImageUploadBox, _buildMaterialsWrap,
+  // _buildStepsList, _buildDashedAddButton, _buildFooterButtons,
+  // _showAddMaterialDialog, _showAddStepDialog
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
@@ -250,17 +356,17 @@ class _EditStemChallengeScreenState
                 items: _categories
                     .map(
                       (c) => DropdownMenuItem(
-                        value: c,
-                        child: Text(
-                          c,
-                          style: GoogleFonts.poppins(
-                            color: _primaryBlue,
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                    value: c,
+                    child: Text(
+                      c,
+                      style: GoogleFonts.poppins(
+                        color: _primaryBlue,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
                       ),
-                    )
+                    ),
+                  ),
+                )
                     .toList(),
                 onChanged: (val) => setState(() => _selectedCategory = val!),
               ),
@@ -279,6 +385,7 @@ class _EditStemChallengeScreenState
       color: Colors.black,
     ),
   );
+
   Widget _buildLabel(String text) => Padding(
     padding: EdgeInsets.only(bottom: 1.h),
     child: Text(
@@ -341,12 +448,12 @@ class _EditStemChallengeScreenState
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: isSelected
                       ? [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ]
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ]
                       : [],
                 ),
                 child: Center(
@@ -357,10 +464,10 @@ class _EditStemChallengeScreenState
                       fontWeight: FontWeight.w600,
                       color: isSelected
                           ? (level == 'Easy'
-                                ? Colors.green
-                                : (level == 'Medium'
-                                      ? Colors.orange
-                                      : Colors.red))
+                          ? Colors.green
+                          : (level == 'Medium'
+                          ? Colors.orange
+                          : Colors.red))
                           : Colors.grey.shade600,
                     ),
                   ),
@@ -404,52 +511,52 @@ class _EditStemChallengeScreenState
           },
           child: imageProvider != null
               ? Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image(
-                        image: imageProvider,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: InkWell(
-                        onTap: () => setState(() {
-                          _newImageFile = null;
-                          _existingImageUrl = null;
-                        }),
-                        child: CircleAvatar(
-                          backgroundColor: Colors.white,
-                          radius: 14,
-                          child: Icon(Icons.close, size: 16, color: Colors.red),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.cloud_upload_rounded,
-                      size: 28.sp,
-                      color: Colors.grey.shade600,
-                    ),
-                    SizedBox(height: 1.h),
-                    Text(
-                      "Tap to change image",
-                      style: GoogleFonts.poppins(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                  ],
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image(
+                  image: imageProvider,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
                 ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: InkWell(
+                  onTap: () => setState(() {
+                    _newImageFile = null;
+                    _existingImageUrl = null;
+                  }),
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    radius: 14,
+                    child: Icon(Icons.close, size: 16, color: Colors.red),
+                  ),
+                ),
+              ),
+            ],
+          )
+              : Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.cloud_upload_rounded,
+                size: 28.sp,
+                color: Colors.grey.shade600,
+              ),
+              SizedBox(height: 1.h),
+              Text(
+                "Tap to change image",
+                style: GoogleFonts.poppins(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -462,35 +569,35 @@ class _EditStemChallengeScreenState
       children: _materials
           .map(
             (material) => Container(
-              padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.8.h),
-              decoration: BoxDecoration(
-                color: _lightBlue,
-                borderRadius: BorderRadius.circular(20),
+          padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.8.h),
+          decoration: BoxDecoration(
+            color: _lightBlue,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                material,
+                style: GoogleFonts.poppins(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: _primaryBlue,
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    material,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w600,
-                      color: _primaryBlue,
-                    ),
-                  ),
-                  SizedBox(width: 1.w),
-                  InkWell(
-                    onTap: () => setState(() => _materials.remove(material)),
-                    child: Icon(
-                      Icons.close,
-                      size: 14.sp,
-                      color: _primaryBlue.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
+              SizedBox(width: 1.w),
+              InkWell(
+                onTap: () => setState(() => _materials.remove(material)),
+                child: Icon(
+                  Icons.close,
+                  size: 14.sp,
+                  color: _primaryBlue.withOpacity(0.7),
+                ),
               ),
-            ),
-          )
+            ],
+          ),
+        ),
+      )
           .toList(),
     );
   }
@@ -603,21 +710,21 @@ class _EditStemChallengeScreenState
             ),
             child: isLoading
                 ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
                 : Text(
-                    "Update Challenge",
-                    style: GoogleFonts.poppins(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+              "Update Challenge",
+              style: GoogleFonts.poppins(
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
           ),
         ),
         SizedBox(height: 2.h),

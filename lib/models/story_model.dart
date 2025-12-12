@@ -23,6 +23,10 @@ class StoryModel {
   final List<StoryPage> pages;
   final DateTime createdAt;
 
+  // --- NEW FIELDS ---
+  final List<String> tags;
+  final bool isSensitive;
+
   StoryModel({
     this.id,
     this.adminId,
@@ -31,6 +35,9 @@ class StoryModel {
     this.thumbnailUrl,
     required this.pages,
     required this.createdAt,
+    // --- Initialize New Fields ---
+    this.tags = const [],
+    this.isSensitive = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -42,6 +49,9 @@ class StoryModel {
       'thumbnailUrl': thumbnailUrl,
       'pages': pages.map((p) => p.toMap()).toList(),
       'createdAt': createdAt.toIso8601String(),
+      // --- Serialize New Fields ---
+      'tags': tags,
+      'isSensitive': isSensitive,
     };
   }
 
@@ -56,6 +66,9 @@ class StoryModel {
           (map['pages'] as List<dynamic>? ?? []).map((x) => StoryPage.fromMap(Map<String, dynamic>.from(x)))
       ),
       createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
+      // --- Deserialize New Fields ---
+      tags: List<String>.from(map['tags'] ?? []),
+      isSensitive: map['isSensitive'] ?? false,
     );
   }
 
@@ -67,6 +80,9 @@ class StoryModel {
     String? thumbnailUrl,
     List<StoryPage>? pages,
     DateTime? createdAt,
+    // --- New Fields in CopyWith ---
+    List<String>? tags,
+    bool? isSensitive,
   }) {
     return StoryModel(
       id: id ?? this.id,
@@ -76,6 +92,9 @@ class StoryModel {
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       pages: pages ?? this.pages,
       createdAt: createdAt ?? this.createdAt,
+      // --- Assign New Fields ---
+      tags: tags ?? this.tags,
+      isSensitive: isSensitive ?? this.isSensitive,
     );
   }
 }

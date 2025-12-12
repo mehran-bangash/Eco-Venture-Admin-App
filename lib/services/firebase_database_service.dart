@@ -500,7 +500,7 @@ class FirebaseDatabaseService {
   Future<void> addQrHunt(QrHuntModel hunt) async {
     try {
       String? currentAdminId = await SharedPreferencesHelper.instance.getAdminId();
-      if (currentAdminId == null) currentAdminId = _auth.currentUser?.uid;
+      currentAdminId ??= _auth.currentUser?.uid;
       if (currentAdminId == null) throw Exception("Admin ID not found.");
 
       final String newKey = _generateKey();

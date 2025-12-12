@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui'; // Required for PathMetrics
+import 'package:eco_venture_admin_portal/core/config/api_constant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,18 +8,21 @@ import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../../models/story_model.dart';
 import '../../../viewmodels/child_section/multimedia_content/admin_multimedia_provider.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http; // Add HTTP import
 
 class AdminEditStoryScreen extends ConsumerStatefulWidget {
   final dynamic storyData; // Can be Map or StoryModel
   const AdminEditStoryScreen({super.key, required this.storyData});
 
   @override
-  ConsumerState<AdminEditStoryScreen> createState() => _AdminEditStoryScreenState();
+  ConsumerState<AdminEditStoryScreen> createState() =>
+      _AdminEditStoryScreenState();
 }
 
 class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
   // --- PRO COLORS ---
-  final Color _primaryPurple = const Color(0xFF8E2DE2); // Story Theme Purple
+  final Color _primaryPurple = const Color(0xFF8E2DE2);
   final Color _bg = const Color(0xFFF4F7FE);
   final Color _textDark = const Color(0xFF1B2559);
   final Color _borderGrey = const Color(0xFFE0E0E0);
@@ -27,32 +31,39 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
 
+  // --- NEW CONTROLLERS ---
+  late TextEditingController _tagsController;
+  late bool _isSensitive;
+  // -----------------------
+
   late StoryModel _story;
   File? _coverImage;
   String? _existingCoverUrl;
-  late List<StoryPage> _pages; // Using Model class StoryPage
+  late List<StoryPage> _pages;
 
   @override
   void initState() {
     super.initState();
 
-    // 1. Parse Data (Robust check)
+    // 1. Parse Data
     if (widget.storyData is StoryModel) {
       _story = widget.storyData;
     } else {
-      // Convert Map to Model
       final map = Map<String, dynamic>.from(widget.storyData);
-      // Handle ID extraction
       final String id = map['id'] ?? '';
       _story = StoryModel.fromMap(id, map);
     }
 
-    // 2. Pre-fill Controllers & State
+    // 2. Pre-fill Controllers
     _titleController.text = _story.title;
     _descController.text = _story.description;
-    _existingCoverUrl = _story.thumbnailUrl;
 
-    // Deep copy of pages to avoid mutating original state before save
+    // --- NEW: Initialize Tags & Sensitivity ---
+    _tagsController = TextEditingController(text: _story.tags.join(', '));
+    _isSensitive = _story.isSensitive;
+    // ------------------------------------------
+
+    _existingCoverUrl = _story.thumbnailUrl;
     _pages = List.from(_story.pages);
   }
 
@@ -60,31 +71,80 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
+    _tagsController.dispose();
     super.dispose();
+  }
+
+  // --- NOTIFICATION LOGIC ---
+  Future<void> _sendNotificationToUsers(String title) async {
+    const String backendUrl = ApiConstants.notifyByRoleEndPoints;
+
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "title": "Story Updated! 📖",
+          "body": "Check out changes to '$title'.",
+          "type": "STORY",
+          "targetRole": "child"
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Notification sent successfully");
+      }
+    } catch (e) {
+      print("❌ Error calling backend: $e");
+    }
   }
 
   // --- UPDATE LOGIC ---
   Future<void> _updateStory() async {
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Title is required"), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Title is required"), backgroundColor: Colors.red),
+      );
       return;
     }
     if (_pages.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Story must have at least one page"), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Story must have at least one page"), backgroundColor: Colors.red),
+      );
       return;
+    }
+
+    // --- 1. Process Tags & Sensitivity ---
+    List<String> tagsList = _tagsController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    if (_isSensitive && !tagsList.contains('scary')) {
+      tagsList.add('scary');
+    }
+    if (!_isSensitive) {
+      tagsList.remove('scary');
     }
 
     // Create updated model
     final updatedStory = _story.copyWith(
       title: _titleController.text.trim(),
       description: _descController.text.trim(),
-      thumbnailUrl: _coverImage?.path ?? _existingCoverUrl, // Use new file if picked, else old URL
+      thumbnailUrl: _coverImage?.path ?? _existingCoverUrl,
       pages: _pages,
-      // uploadedAt, id, likes, etc are preserved via copyWith
+      // --- Update New Fields ---
+      tags: tagsList,
+      isSensitive: _isSensitive,
     );
 
-    // Call Admin Provider
     await ref.read(adminMultimediaViewModelProvider.notifier).updateStory(updatedStory);
+
+    // --- Trigger Notification (If not sensitive) ---
+    if (!_isSensitive) {
+      _sendNotificationToUsers(updatedStory.title);
+    }
   }
 
   Future<void> _pickCoverImage() async {
@@ -93,7 +153,7 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
     if (img != null) {
       setState(() {
         _coverImage = File(img.path);
-        _existingCoverUrl = null; // Clear existing if new picked
+        _existingCoverUrl = null;
       });
     }
   }
@@ -104,23 +164,37 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
 
     ref.listen(adminMultimediaViewModelProvider, (prev, next) {
       if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Story Updated Successfully!"), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Story Updated Successfully!"), backgroundColor: Colors.green),
+        );
         ref.read(adminMultimediaViewModelProvider.notifier).resetSuccess();
         Navigator.pop(context);
       }
       if (next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${next.errorMessage}"), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${next.errorMessage}"), backgroundColor: Colors.red),
+        );
       }
     });
 
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
-        title: Text("Edit Story", style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.bold, fontSize: 18.sp)),
+        title: Text(
+          "Edit Story",
+          style: GoogleFonts.poppins(
+            color: _textDark,
+            fontWeight: FontWeight.bold,
+            fontSize: 18.sp,
+          ),
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.black), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Stack(
         children: [
@@ -129,20 +203,58 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- SECTION 1: STORY INFO ---
                 _buildSectionHeader("Story Details"),
                 SizedBox(height: 2.h),
                 Container(
                   padding: EdgeInsets.all(5.w),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)]),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.05),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildLabel("Story Title"),
-                      _buildTextField(controller: _titleController, hint: "e.g. The Brave Little Rabbit"),
+                      _buildTextField(
+                        controller: _titleController,
+                        hint: "e.g. The Brave Little Rabbit",
+                      ),
                       SizedBox(height: 2.h),
                       _buildLabel("Description"),
-                      _buildTextField(controller: _descController, hint: "Short summary...", maxLines: 3),
+                      _buildTextField(
+                        controller: _descController,
+                        hint: "Short summary...",
+                        maxLines: 3,
+                      ),
+
+                      // --- NEW UI FIELDS ---
+                      SizedBox(height: 2.h),
+                      _buildLabel("Tags (comma-separated)"),
+                      _buildTextField(controller: _tagsController, hint: "e.g. animals, moral"),
+
+                      SizedBox(height: 2.h),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: _bg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _borderGrey),
+                        ),
+                        child: SwitchListTile(
+                          activeColor: Colors.red,
+                          title: Text("Sensitive Content", style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.red.shade700)),
+                          subtitle: Text("Hide from younger children", style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey)),
+                          value: _isSensitive,
+                          onChanged: (val) => setState(() => _isSensitive = val),
+                        ),
+                      ),
+                      // ---------------------
+
                       SizedBox(height: 3.h),
                       _buildLabel("Cover Illustration"),
                       _buildCoverUpload(),
@@ -157,12 +269,31 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
                   children: [
                     _buildSectionHeader("Pages (${_pages.length})"),
                     InkWell(
-                      onTap: () => _showPageEditor(), // Add New Page
+                      onTap: () => _showPageEditor(),
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.8.h),
-                        decoration: BoxDecoration(color: _primaryPurple.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                        child: Row(children: [Icon(Icons.add, size: 16.sp, color: _primaryPurple), SizedBox(width: 1.w), Text("Add Page", style: GoogleFonts.poppins(fontSize: 12.sp, color: _primaryPurple, fontWeight: FontWeight.w600))]),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 3.w,
+                          vertical: 0.8.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _primaryPurple.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.add, size: 16.sp, color: _primaryPurple),
+                            SizedBox(width: 1.w),
+                            Text(
+                              "Add Page",
+                              style: GoogleFonts.poppins(
+                                fontSize: 12.sp,
+                                color: _primaryPurple,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -170,7 +301,18 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
                 SizedBox(height: 2.h),
 
                 if (_pages.isEmpty)
-                  Center(child: Padding(padding: EdgeInsets.all(4.h), child: Text("No pages yet.", style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14.sp))))
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(4.h),
+                      child: Text(
+                        "No pages yet.",
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                    ),
+                  )
                 else
                   ListView.separated(
                     shrinkWrap: true,
@@ -188,24 +330,42 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
                   height: 7.h,
                   child: ElevatedButton(
                     onPressed: state.isLoading ? null : _updateStory,
-                    style: ElevatedButton.styleFrom(backgroundColor: _primaryPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 5),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _primaryPurple,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 5,
+                    ),
                     child: state.isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : Text("Update Story", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.white)),
+                        : Text(
+                      "Update Story",
+                      style: GoogleFonts.poppins(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
                 SizedBox(height: 5.h),
               ],
             ),
           ),
-          if (state.isLoading) Container(color: Colors.black26, child: const Center(child: CircularProgressIndicator(color: Colors.white))),
+          if (state.isLoading)
+            Container(
+              color: Colors.black26,
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  // --- WIDGETS ---
-
+  // --- WIDGETS (Unchanged) ---
   Widget _buildSectionHeader(String title) => Text(title, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: _textDark));
   Widget _buildLabel(String text) => Padding(padding: EdgeInsets.only(bottom: 1.h), child: Text(text, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.grey[700])));
 
@@ -265,11 +425,8 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Page Number
           CircleAvatar(radius: 14.sp, backgroundColor: _primaryPurple.withOpacity(0.1), child: Text("${index + 1}", style: TextStyle(color: _primaryPurple, fontWeight: FontWeight.bold, fontSize: 14.sp))),
           SizedBox(width: 4.w),
-
-          // Content Preview
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,8 +439,6 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
               ],
             ),
           ),
-
-          // Edit/Delete
           Column(
             children: [
               IconButton(icon: Icon(Icons.edit, color: Colors.blue, size: 18.sp), onPressed: () => _showPageEditor(existingIndex: index)),
@@ -295,11 +450,8 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
     );
   }
 
-  // --- PAGE EDITOR MODAL ---
   void _showPageEditor({int? existingIndex}) {
     final textCtrl = TextEditingController(text: existingIndex != null ? _pages[existingIndex].text : "");
-
-    // Determine initial image state
     File? pageImageFile;
     String? pageImageUrl;
 
@@ -317,7 +469,6 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
           builder: (context, setModalState) {
-
             ImageProvider? editorImgProvider;
             if (pageImageFile != null) editorImgProvider = FileImage(pageImageFile!);
             else if (pageImageUrl != null) editorImgProvider = NetworkImage(pageImageUrl!);
@@ -332,7 +483,6 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
                   SizedBox(height: 2.h),
                   Text(existingIndex == null ? "Add New Page" : "Edit Page ${existingIndex + 1}", style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.bold, color: _textDark)),
                   SizedBox(height: 3.h),
-
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
@@ -346,7 +496,6 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
                             decoration: InputDecoration(hintText: "Once upon a time...", filled: true, fillColor: const Color(0xFFF8F9FA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
                           ),
                           SizedBox(height: 3.h),
-
                           _buildLabel("Illustration (Optional)"),
                           InkWell(
                             onTap: () async {
@@ -355,18 +504,13 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
                               if(img != null) {
                                 setModalState(() {
                                   pageImageFile = File(img.path);
-                                  pageImageUrl = null; // Override URL
+                                  pageImageUrl = null;
                                 });
                               }
                             },
                             child: Container(
                               height: 20.h, width: double.infinity,
-                              decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey.shade300),
-                                  image: editorImgProvider != null ? DecorationImage(image: editorImgProvider, fit: BoxFit.cover) : null
-                              ),
+                              decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300), image: editorImgProvider != null ? DecorationImage(image: editorImgProvider, fit: BoxFit.cover) : null),
                               child: editorImgProvider == null ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_photo_alternate, color: _primaryPurple, size: 24.sp), Text("Add Image", style: TextStyle(color: _primaryPurple))])) : null,
                             ),
                           ),
@@ -376,18 +520,14 @@ class _AdminEditStoryScreenState extends ConsumerState<AdminEditStoryScreen> {
                       ),
                     ),
                   ),
-
                   SizedBox(height: 2.h),
                   SizedBox(
                     width: double.infinity, height: 7.h,
                     child: ElevatedButton(
                       onPressed: () {
                         if (textCtrl.text.trim().isEmpty && pageImageFile == null && pageImageUrl == null) return;
-
                         final String? finalImgPath = pageImageFile?.path ?? pageImageUrl;
-
                         final newPage = StoryPage(text: textCtrl.text, imageUrl: finalImgPath ?? "");
-
                         setState(() {
                           if (existingIndex != null) _pages[existingIndex] = newPage;
                           else _pages.add(newPage);

@@ -5,9 +5,8 @@ import 'package:eco_venture_admin_portal/views/child_section/%20stem_challenges_
 import 'package:eco_venture_admin_portal/views/child_section/%20stem_challenges_screen/edit_stem_challenges_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/admin_child_home.dart';
 import 'package:eco_venture_admin_portal/views/child_section/interactive_quiz_screen/add_quiz_screen.dart';
-import 'package:eco_venture_admin_portal/views/child_section/interactive_quiz_screen/edit_quiz_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/admin_add_story_screen.dart';
-import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/admin_add_video_screen.dart' hide AdminVideoDashboard;
+import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/admin_add_video_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/admin_edit_story_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/admin_multimedia_dashboard.dart';
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/admin_edit_video_screen.dart';
@@ -17,6 +16,7 @@ import 'package:eco_venture_admin_portal/views/child_section/treasure_hunt/admin
 import 'package:go_router/go_router.dart';
 import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/ stem_challenges_screen/stem_challenges_screen.dart';
+import '../../views/child_section/interactive_quiz_screen/edit_quiz_screen.dart';
 import '../../views/child_section/interactive_quiz_screen/interactive_quiz_screen.dart';
 import '../../views/child_section/interactive_quiz_screen/quiz_topic_detail_screen.dart';
 import '../../views/child_section/multimedia_content/admin_story_dashboard.dart';

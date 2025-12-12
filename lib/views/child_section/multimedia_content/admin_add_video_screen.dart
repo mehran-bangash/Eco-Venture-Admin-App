@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
-import 'dart:ui'; // Required for CustomPainter
+import 'dart:ui';
+import 'package:eco_venture_admin_portal/core/config/api_constant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../../models/video_model.dart';
@@ -18,16 +21,19 @@ class AdminAddVideoScreen extends ConsumerStatefulWidget {
 
 class _AdminAddVideoScreenState extends ConsumerState<AdminAddVideoScreen> {
   // --- PRO COLORS ---
-  final Color _primary = const Color(0xFFE53935); // YouTube Red-ish for Admin
+  final Color _primary = const Color(0xFFE53935);
   final Color _bg = const Color(0xFFF4F7FE);
   final Color _textDark = const Color(0xFF1B2559);
-  final Color _textGrey = const Color(0xFFA3AED0);
   final Color _borderGrey = const Color(0xFFE0E0E0);
-  final Color _dashedBorderColor = const Color(0xFFBDBDBD);
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
+
+  // --- NEW FIELDS ---
+  final TextEditingController _tagsController = TextEditingController();
+  bool _isSensitive = false;
+  // -----------------
 
   String _selectedCategory = 'Science';
   final List<String> _categories = ['Science', 'Maths', 'History', 'Ecosystem', 'Climate', 'Recycling'];
@@ -40,7 +46,32 @@ class _AdminAddVideoScreenState extends ConsumerState<AdminAddVideoScreen> {
     _titleController.dispose();
     _descController.dispose();
     _durationController.dispose();
+    _tagsController.dispose();
     super.dispose();
+  }
+
+  // --- NOTIFICATION LOGIC ---
+  Future<void> _sendNotificationToUsers(String title) async {
+    const String backendUrl = ApiConstants.notifyByRoleEndPoints; // Use correct IP
+
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "title": "New Video Alert! 🎥",
+          "body": "Watch the new video: '$title'!",
+          "type": "VIDEO",
+          "targetRole": "child" // Notify children only
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Notification sent successfully");
+      }
+    } catch (e) {
+      print("❌ Error calling backend: $e");
+    }
   }
 
   Future<void> _pickThumbnail() async {
@@ -61,6 +92,20 @@ class _AdminAddVideoScreenState extends ConsumerState<AdminAddVideoScreen> {
       return;
     }
 
+    // --- 1. Process Tags & Sensitivity ---
+    List<String> tagsList = _tagsController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    if (_isSensitive && !tagsList.contains('scary')) {
+      tagsList.add('scary');
+    }
+    if (!_isSensitive) {
+      tagsList.remove('scary');
+    }
+
     final newVideo = VideoModel(
       title: _titleController.text.trim(),
       description: _descController.text.trim(),
@@ -68,11 +113,18 @@ class _AdminAddVideoScreenState extends ConsumerState<AdminAddVideoScreen> {
       videoUrl: _videoFile!.path,
       thumbnailUrl: _thumbnailImage?.path,
       duration: _durationController.text.isNotEmpty ? _durationController.text : "00:00",
-      createdAt: DateTime.now(), // FIX: Changed from uploadedAt to createdAt
-      // likes: 0, dislikes: 0, views: 0, status: 'published', adminId: '', id: '', // Removed optional/filled-by-service fields if not required by constructor
+      createdAt: DateTime.now(),
+      // --- Pass New Fields ---
+      tags: tagsList,
+      isSensitive: _isSensitive,
     );
 
     await ref.read(adminVideoViewModelProvider.notifier).addVideo(newVideo);
+
+    // --- Trigger Notification (If not sensitive) ---
+    if (!_isSensitive) {
+      _sendNotificationToUsers(newVideo.title);
+    }
   }
 
   @override
@@ -123,6 +175,29 @@ class _AdminAddVideoScreenState extends ConsumerState<AdminAddVideoScreen> {
                   SizedBox(width: 4.w),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildLabel("Duration"), _buildTextField(_durationController, "e.g. 05:30")])),
                 ]),
+                SizedBox(height: 2.h),
+
+                // --- NEW UI FIELDS ---
+                _buildLabel("Tags (comma-separated)"),
+                _buildTextField(_tagsController, "e.g. funny, science, short"),
+                SizedBox(height: 2.h),
+
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _borderGrey),
+                  ),
+                  child: SwitchListTile(
+                    activeColor: Colors.red,
+                    title: Text("Sensitive Content", style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.red.shade700)),
+                    subtitle: Text("Hide from younger children", style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey)),
+                    value: _isSensitive,
+                    onChanged: (val) => setState(() => _isSensitive = val),
+                  ),
+                ),
+                // ---------------------
+
                 SizedBox(height: 4.h),
 
                 // --- SECTION 2: MEDIA ---

@@ -9,6 +9,10 @@ class StemChallengeModel {
   final List<String> materials;
   final List<String> steps;
 
+  // --- NEW FIELDS ---
+  final List<String> tags;
+  final bool isSensitive;
+
   StemChallengeModel({
     this.id,
     this.adminId,
@@ -19,6 +23,9 @@ class StemChallengeModel {
     this.imageUrl,
     required this.materials,
     required this.steps,
+    // --- Initialize New Fields ---
+    this.tags = const [],
+    this.isSensitive = false,
   });
 
   // Convert to Map for Firebase Realtime Database
@@ -33,6 +40,9 @@ class StemChallengeModel {
       'imageUrl': imageUrl,
       'materials': materials,
       'steps': steps,
+      // --- Serialize New Fields ---
+      'tags': tags,
+      'isSensitive': isSensitive,
     };
   }
 
@@ -46,13 +56,16 @@ class StemChallengeModel {
       difficulty: map['difficulty'] ?? 'Easy',
       points: map['points']?.toInt() ?? 0,
       imageUrl: map['imageUrl'],
-      // Safely parse lists from dynamic maps
+      // Safely parse lists
       materials: List<String>.from(map['materials'] ?? []),
       steps: List<String>.from(map['steps'] ?? []),
+      // --- Deserialize New Fields ---
+      tags: List<String>.from(map['tags'] ?? []),
+      isSensitive: map['isSensitive'] ?? false,
     );
   }
 
-  // CopyWith for immutable updates (e.g., adding image URL after upload)
+  // CopyWith for immutable updates
   StemChallengeModel copyWith({
     String? id,
     String? adminId,
@@ -63,6 +76,9 @@ class StemChallengeModel {
     String? imageUrl,
     List<String>? materials,
     List<String>? steps,
+    // --- New Fields in CopyWith ---
+    List<String>? tags,
+    bool? isSensitive,
   }) {
     return StemChallengeModel(
       id: id ?? this.id,
@@ -74,6 +90,9 @@ class StemChallengeModel {
       imageUrl: imageUrl ?? this.imageUrl,
       materials: materials ?? this.materials,
       steps: steps ?? this.steps,
+      // --- Assign New Fields ---
+      tags: tags ?? this.tags,
+      isSensitive: isSensitive ?? this.isSensitive,
     );
   }
 }

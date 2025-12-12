@@ -6,6 +6,10 @@ class QuizTopicModel {
   final String creatorId;
   final List<QuizLevelModel> levels;
 
+  // --- NEW FIELDS ---
+  final List<String> tags;
+  final bool isSensitive;
+
   QuizTopicModel({
     this.id,
     required this.category,
@@ -13,6 +17,9 @@ class QuizTopicModel {
     required this.createdBy,
     required this.creatorId,
     required this.levels,
+    // --- Initialize New Fields ---
+    this.tags = const [],
+    this.isSensitive = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +33,11 @@ class QuizTopicModel {
       'created_by': createdBy,
       'creator_id': creatorId,
       'levels': levelsMap,
+      // --- Serialize New Fields ---
+      'tags': tags,
+      'is_sensitive': isSensitive,
+      // Adding a timestamp is helpful for Notifications sorting/filtering
+      'created_at': DateTime.now().toIso8601String(),
     };
   }
 
@@ -33,7 +45,6 @@ class QuizTopicModel {
     var rawLevels = map['levels'];
     List<QuizLevelModel> parsedLevels = [];
 
-    // FIX: Handle both Map (standard) and List (Firebase array optimization)
     if (rawLevels != null) {
       if (rawLevels is Map) {
         rawLevels.forEach((key, value) {
@@ -42,19 +53,27 @@ class QuizTopicModel {
           }
         });
       } else if (rawLevels is List) {
-        // If Firebase converted "1", "2" keys to an array
         for (var i = 0; i < rawLevels.length; i++) {
           final item = rawLevels[i];
           if (item != null && item is Map) {
-            // Use index or internal order if available
             parsedLevels.add(QuizLevelModel.fromMap(i.toString(), Map<String, dynamic>.from(item)));
           }
         }
       }
     }
 
-    // Sort to ensure Order 1, 2, 3...
     parsedLevels.sort((a, b) => a.order.compareTo(b.order));
+
+    // --- Parse Tags safely ---
+    List<String> parsedTags = [];
+    if (map['tags'] != null) {
+      if (map['tags'] is List) {
+        parsedTags = List<String>.from(map['tags']);
+      } else if (map['tags'] is Map) {
+        // Handle rare case where Firebase stores list as Map {"0": "tag1"}
+        (map['tags'] as Map).forEach((k, v) => parsedTags.add(v.toString()));
+      }
+    }
 
     return QuizTopicModel(
       id: id,
@@ -63,6 +82,9 @@ class QuizTopicModel {
       createdBy: map['created_by'] ?? 'admin',
       creatorId: map['creator_id'] ?? '',
       levels: parsedLevels,
+      // --- Deserialize New Fields ---
+      tags: parsedTags,
+      isSensitive: map['is_sensitive'] ?? false,
     );
   }
 
@@ -73,6 +95,9 @@ class QuizTopicModel {
     String? createdBy,
     String? creatorId,
     List<QuizLevelModel>? levels,
+    // --- New Fields in CopyWith ---
+    List<String>? tags,
+    bool? isSensitive,
   }) {
     return QuizTopicModel(
       id: id ?? this.id,
@@ -81,10 +106,15 @@ class QuizTopicModel {
       createdBy: createdBy ?? this.createdBy,
       creatorId: creatorId ?? this.creatorId,
       levels: levels ?? this.levels,
+      // --- Assign New Fields ---
+      tags: tags ?? this.tags,
+      isSensitive: isSensitive ?? this.isSensitive,
     );
   }
 }
 
+// --- QuizLevelModel and QuestionModel remain UNCHANGED ---
+// (Keep the code you sent for Level/Question models exactly as it is)
 class QuizLevelModel {
   final int order;
   final String title;
@@ -111,7 +141,7 @@ class QuizLevelModel {
 
   factory QuizLevelModel.fromMap(String orderKey, Map<String, dynamic> map) {
     return QuizLevelModel(
-      order: int.tryParse(orderKey) ?? map['order'] ?? 1, // Fallback to internal map order
+      order: int.tryParse(orderKey) ?? map['order'] ?? 1,
       title: map['title'] ?? '',
       passingPercentage: map['passing_percentage']?.toInt() ?? 60,
       points: map['points']?.toInt() ?? 0,
@@ -123,7 +153,6 @@ class QuizLevelModel {
     );
   }
 
-  // Add copyWith... (same as before)
   QuizLevelModel copyWith({
     int? order,
     String? title,
@@ -172,7 +201,6 @@ class QuestionModel {
     );
   }
 
-  // Add copyWith... (same as before)
   QuestionModel copyWith({
     String? question,
     List<String>? options,
