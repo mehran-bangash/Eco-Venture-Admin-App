@@ -1,15 +1,8 @@
 class ApiConstants {
-  //  // Change manually depending on test environment
-  // static const String baseUrl = "http://10.0.2.2:5000/"; // Emulator
-  // //static const String baseUrl = "http://192.168.0.182:5000/"; // Real Device
-  //  static const String signInEndpoint = "${baseUrl}signIn";
-  //  static const String signUpEndpoint =   "${baseUrl}signup";
-  //  static const String googleEndpoint =   "${baseUrl}google";
-  //  static const String getUserEndpoint = "${baseUrl}user";
-  //  static const String chatEndpoint= "${baseUrl}chat";
+  // Use your deployed Render backend (Removed trailing slash)
+  static const String baseUrl = "https://eco-venture-backend.onrender.com";
 
-
-  // Use your deployed Render backend
-  static const String baseUrl = "https://eco-venture-backend.onrender.com/";
-  static const  String  notifyByRoleEndPoints='${baseUrl}notify-by-role';
+  // Endpoints (Add leading slash here)
+  static const String notifyByRoleEndPoints = '$baseUrl/notify-by-role';
+  static const String notifyTeacherEndpoints = '$baseUrl/admin/verify-teacher';
 }

@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:eco_venture_admin_portal/views/child_section/admin_child_home.dart';
-import 'package:eco_venture_admin_portal/views/report_screens/report_safety_screen.dart';
+import 'package:eco_venture_admin_portal/views/child_section/report_safety/admin_safety_report_screen.dart';
 import 'package:eco_venture_admin_portal/views/settings/admin_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,7 +20,7 @@ class _BottomNavChildState extends State<BottomNavChild>
 
   final _screens = [
     const AdminChildHome(),
-    const ReportSafetyScreen(),
+    const AdminSafetyReportScreen(),
     const AdminSettings(),
   ];
 

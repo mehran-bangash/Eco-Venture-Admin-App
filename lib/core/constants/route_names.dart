@@ -56,4 +56,9 @@ class RouteNames {
   static const adminAddTreasureHuntScreen='/child/admin-treasure-hunt/add';
   static const adminEditTreasureHuntScreen='/child/admin-treasure-hunt/edit';
 
+  // Report Safety Screen
+  static const adminSafetyReportScreen='/child/report-safety';
+  static const adminTeacherVerificationScreen='/child/report-safety/verification';
+  static const adminReportDetailScreen='/child/report-safety/report-detail-screen';
+
 }

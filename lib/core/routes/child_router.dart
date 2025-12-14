@@ -1,5 +1,5 @@
-
 import 'package:eco_venture_admin_portal/models/quiz_topic_model.dart';
+import 'package:eco_venture_admin_portal/models/report_model.dart';
 import 'package:eco_venture_admin_portal/models/stem_challenge_model.dart';
 import 'package:eco_venture_admin_portal/views/child_section/%20stem_challenges_screen/add_stem_challenges_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/%20stem_challenges_screen/edit_stem_challenges_screen.dart';
@@ -10,9 +10,13 @@ import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/admin_edit_story_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/admin_multimedia_dashboard.dart';
 import 'package:eco_venture_admin_portal/views/child_section/multimedia_content/admin_edit_video_screen.dart';
+import 'package:eco_venture_admin_portal/views/child_section/report_safety/admin_report_detail_screen.dart';
+import 'package:eco_venture_admin_portal/views/child_section/report_safety/admin_safety_report_screen.dart' hide ReportModel;
+import 'package:eco_venture_admin_portal/views/child_section/report_safety/admin_teacher_verification_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/treasure_hunt/admin_add_treasure_hunt_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/treasure_hunt/admin_edit_treasure_hunt_screen.dart';
 import 'package:eco_venture_admin_portal/views/child_section/treasure_hunt/admin_treasure_hunt_dashboard.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/ stem_challenges_screen/stem_challenges_screen.dart';
@@ -23,12 +27,34 @@ import '../../views/child_section/multimedia_content/admin_story_dashboard.dart'
 import '../../views/child_section/multimedia_content/admin_video_dashboard.dart';
 import '../../views/child_section/nature_photo_journal_screen/nature_photo_journal_screen.dart';
 import '../constants/route_names.dart';
+
 class ChildRouter {
   static final routes = GoRoute(
     path: RouteNames.bottomNavChild, // "/child"
     name: 'bottomNavChild',
     builder: (context, state) => const BottomNavChild(),
     routes: [
+      GoRoute(
+        path: RouteNames.adminSafetyReportScreen,
+        name: "adminSafetyReportScreen",
+        builder: (context, state) => const AdminSafetyReportScreen(),
+        routes: [
+          GoRoute(
+            path: RouteNames.adminTeacherVerificationScreen,
+            name: "adminTeacherVerificationScreen",
+            builder: (context, state) => const AdminTeacherVerificationScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.adminReportDetailScreen,
+            name: "adminReportDetailScreen",
+            builder: (context, state){
+              final reportData=state.extra as ReportModel;
+              return AdminReportDetailScreen(report: reportData);
+            },
+          ),
+        ]
+      ),
+
       GoRoute(
         path: RouteNames.childHome, // "/child/home"
         name: 'childHome',
@@ -48,11 +74,11 @@ class ChildRouter {
                 path: RouteNames.adminEditTreasureHuntScreen,
                 name: 'adminEditTreasureHuntScreen',
                 builder: (context, state) {
-                  final huntData=state.extra;
+                  final huntData = state.extra;
                   return AdminEditTreasureHuntScreen(huntData: huntData);
-                }
+                },
               ),
-            ]
+            ],
           ),
           GoRoute(
             path: RouteNames.adminMultimediaDashboard,
@@ -67,13 +93,13 @@ class ChildRouter {
                   GoRoute(
                     path: RouteNames.adminAddVideoScreen,
                     name: 'adminAddVideoScreen',
-                    builder: (context, state)=>const AdminAddVideoScreen(),
+                    builder: (context, state) => const AdminAddVideoScreen(),
                   ),
                   GoRoute(
                     path: RouteNames.adminEditVideoScreen,
                     name: 'adminEditVideoScreen',
                     builder: (context, state) {
-                      final videoData=state.extra;
+                      final videoData = state.extra;
                       return AdminEditVideoScreen(videoData: videoData);
                     },
                   ),
@@ -93,7 +119,7 @@ class ChildRouter {
                     path: RouteNames.adminEditStoryScreen,
                     name: 'adminEditStoryScreen',
                     builder: (context, state) {
-                      final storyData=state.extra;
+                      final storyData = state.extra;
                       return AdminEditStoryScreen(storyData: storyData);
                     },
                   ),
@@ -110,7 +136,6 @@ class ChildRouter {
                 path: RouteNames.addStemChallengesScreen,
                 name: "addStemChallengesScreen",
                 builder: (context, state) => AddStemChallengeScreen(),
-
               ),
               GoRoute(
                 path: RouteNames.editStemChallengeScreen,
@@ -118,15 +143,10 @@ class ChildRouter {
                 builder: (context, state) {
                   final stemChallenge = state.extra as StemChallengeModel;
 
-                  return EditStemChallengeScreen( challenge: stemChallenge,);
+                  return EditStemChallengeScreen(challenge: stemChallenge);
                 },
-              )
-            ]
-          ),
-          GoRoute(
-            path: RouteNames.naturePhotoJournal,
-            name: 'naturePhotoJournal',
-            builder: (context, state) => const NaturePhotoJournalScreen(),
+              ),
+            ],
           ),
           GoRoute(
             path: RouteNames.interactiveQuiz,
@@ -151,10 +171,9 @@ class ChildRouter {
                 name: 'quizTopicDetailScreen',
                 builder: (context, state) {
                   final quizTopicData = state.extra as QuizTopicModel;
-                  return   QuizTopicDetailScreen(topic:quizTopicData,);
+                  return QuizTopicDetailScreen(topic: quizTopicData);
                 },
               ),
-
             ],
           ),
         ],

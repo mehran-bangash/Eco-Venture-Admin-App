@@ -19,8 +19,6 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // --- INITIALIZE NOTIFICATIONS ---
-  // Set the background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Initialize the foreground/local service
